@@ -207,7 +207,7 @@ class CustomClimateButtonRow extends LitElement {
 		this._autoName = 'auto';
 		this._onName = 'on';
 		this._offName = 'off';
-		this._hideAuto = config.hideAuto ? 'display:none' : 'display:block';
+		this._hideAuto = (config.hideAuto || !config.auto_entity) ? 'display:none' : 'display:block';
 		this._hideOn = (autoOn || config.hideAuto) ? 'display:none' : 'display:block';
 		this._hideOff = (autoOn || config.hideOff) ? 'display:none' : 'display:block';
 

@@ -12,7 +12,7 @@ step: 1
 | Option | Required | Default | Description |
 |---|---|---|---|
 | `entity` | yes | - | Climate entity to control |
-| `auto_entity` | yes | - | Switch entity toggled by the AUTO button |
+| `auto_entity` | no | - | Switch/input_boolean toggled by the AUTO button (button hidden if not set) |
 | `step` | no | 0.5 | Setpoint change per `-`/`+` press |
 | `min_temp` / `max_temp` | no | entity attributes | Limits for `-`/`+` |
 | `hide_auto` / `hide_off` | no | false | Hide the AUTO / OFF button |
