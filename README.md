@@ -22,7 +22,7 @@ step: 1
 |---|---|---|---|
 | `entity` | yes | - | Climate entity to control |
 | `auto_entity` | yes | - | Switch entity toggled by the AUTO button |
-| `step` | no | 1 | Setpoint change per `-`/`+` press |
+| `step` | no | 0.5 | Setpoint change per `-`/`+` press |
 | `min_temp` / `max_temp` | no | entity attributes | Limits for `-`/`+` |
 | `hide_auto` / `hide_off` | no | false | Hide the AUTO / OFF button |
 | `default_hvac_mode` | no | heat | Mode used for ON if the entity has no `turn_on` |
@@ -33,6 +33,7 @@ step: 1
 
 ## How it works
 
-- `-` / `+` call `climate.set_temperature` with the current setpoint +/- `step`.
+- `-` / `+` call `climate.set_temperature` with the current setpoint +/- `step` (default 0.5).
+- The setpoint display shows one decimal (e.g. `21.5`).
 - `AUTO` toggles the switch given by `auto_entity`.
 - `ON` / `OFF` call `climate.turn_on` / `climate.turn_off`, falling back to `climate.set_hvac_mode` when those services are not supported.
