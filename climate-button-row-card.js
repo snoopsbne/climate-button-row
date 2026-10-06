@@ -16,7 +16,7 @@ class CustomClimateButtonRow extends LitElement {
 		super();
 		this._config = {
 			customTheme: false,
-			step: 1,
+			step: 0.5,
 			hideAuto: false,
 			hideOff: false,
 			allowDisablingButtons: true,
@@ -96,12 +96,15 @@ class CustomClimateButtonRow extends LitElement {
 				background-color: #759aaa;
 				border: 1px solid lightgrey;
 				border-radius: 4px;
-				font-size: 10px !important;
+				font-size: 14px !important;
 				color: inherit;
 				text-align: center;
 				float: left !important;
 				padding: 1px;
-				min-width: 40px;
+				min-width: 44px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
 			}
 		`;
 	}
@@ -116,7 +119,7 @@ class CustomClimateButtonRow extends LitElement {
 						toggles name="${this._minusName}"
 						@click=${this.handleButton}
 						.disabled=${this._minusState}>${this._minusText}</button>
-					<span class='temp' style='${this._tempColor}'>${this._tempText}</span>
+					<span class='temp' style='${this._tempColor};height:${this._height}'>${this._tempText}</span>
 					<button
 						class='percentage'
 						style='${this._plusColor};min-width:${this._width};max-width:${this._width};height:${this._height}'
@@ -200,7 +203,7 @@ class CustomClimateButtonRow extends LitElement {
 		this._height = buttonHeight;
 		this._minusText = config.customMinusText;
 		this._plusText = config.customPlusText;
-		this._tempText = current !== null ? current : '--';
+		this._tempText = current !== null ? current.toFixed(1) : '--';
 		this._autoText = config.customAutoText;
 		this._onText = config.customOnText;
 		this._offText = config.customOffText;
@@ -236,7 +239,7 @@ class CustomClimateButtonRow extends LitElement {
 			const minTemp = config.min_temp ?? (stateObj.attributes.min_temp ?? 0);
 			const maxTemp = config.max_temp ?? (stateObj.attributes.max_temp ?? 100);
 			const delta = level === 'minus' ? -this._step : this._step;
-			let target = current + delta;
+			let target = Math.round((current + delta) * 10) / 10;
 			if (target < minTemp) target = minTemp;
 			if (target > maxTemp) target = maxTemp;
 			this.hass.callService('climate', 'set_temperature', { entity_id: config.entity, temperature: target });
