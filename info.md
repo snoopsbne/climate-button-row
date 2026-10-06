@@ -33,4 +33,4 @@ entity: climate.bedroom
 auto_entity: switch.bedroom_auto
 ```
 
-`-`/`+` call `climate.set_temperature` (setpoint shown with one decimal), `AUTO` toggles `auto_entity` (switch or input_boolean), `ON`/`OFF` call `climate.turn_on`/`turn_off` (falling back to `set_hvac_mode`).
+`-`/`+` call `climate.set_temperature` (setpoint shown with one decimal), `AUTO` toggles `auto_entity` (switch or input_boolean), `ON`/`OFF` call `climate.turn_on`/`turn_off` (falling back to `set_hvac_mode`). Pressing `OFF` also turns off `auto_entity` if it is on.
