@@ -43,7 +43,6 @@ class CustomClimateButtonRow extends LitElement {
 			_width: String,
 			_height: String,
 			_minusColor: String,
-			_tempColor: String,
 			_plusColor: String,
 			_autoColor: String,
 			_onColor: String,
@@ -93,14 +92,10 @@ class CustomClimateButtonRow extends LitElement {
 			.temp {
 				margin-left: 2px;
 				margin-right: 2px;
-				background-color: #759aaa;
-				border: 1px solid lightgrey;
-				border-radius: 4px;
 				font-size: 14px !important;
 				color: inherit;
 				text-align: center;
 				float: left !important;
-				padding: 1px;
 				min-width: 44px;
 				display: flex;
 				align-items: center;
@@ -119,7 +114,7 @@ class CustomClimateButtonRow extends LitElement {
 						toggles name="${this._minusName}"
 						@click=${this.handleButton}
 						.disabled=${this._minusState}>${this._minusText}</button>
-					<span class='temp' style='${this._tempColor};height:${this._height}'>${this._tempText}</span>
+					<span class='temp' style='height:${this._height}'>${this._tempText}</span>
 					<button
 						class='percentage'
 						style='${this._plusColor};min-width:${this._width};max-width:${this._width};height:${this._height}'
@@ -203,7 +198,7 @@ class CustomClimateButtonRow extends LitElement {
 		this._height = buttonHeight;
 		this._minusText = config.customMinusText;
 		this._plusText = config.customPlusText;
-		this._tempText = current !== null ? current.toFixed(1) : '--';
+		this._tempText = current !== null ? current.toFixed(1) + 'c' : '--';
 		this._autoText = config.customAutoText;
 		this._onText = config.customOnText;
 		this._offText = config.customOffText;
@@ -216,7 +211,6 @@ class CustomClimateButtonRow extends LitElement {
 
 		this._minusColor = atMin ? 'background-color:' + buttonOffClr : inactiveStyle;
 		this._plusColor = atMax ? 'background-color:' + buttonOffClr : inactiveStyle;
-		this._tempColor = custTheme ? 'background-color:' + buttonOffClr : inactiveStyle;
 		this._autoColor = autoOn ? (custTheme ? 'background-color:' + AutoClr : activeStyle) : inactiveStyle;
 		this._onColor = climateOn ? (custTheme ? 'background-color:' + OnClr : activeStyle) : inactiveStyle;
 		this._offColor = !climateOn ? (custTheme ? 'background-color:' + OffClr : activeStyle) : inactiveStyle;
