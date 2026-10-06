@@ -252,6 +252,10 @@ class CustomClimateButtonRow extends LitElement {
 			} else {
 				this.hass.callService('climate', 'set_hvac_mode', { entity_id: config.entity, hvac_mode: 'off' });
 			}
+			if (config.auto_entity && this.hass.states[config.auto_entity] && this.hass.states[config.auto_entity].state === 'on') {
+				const domain = config.auto_entity.split('.')[0];
+				this.hass.callService(domain, 'turn_off', { entity_id: config.auto_entity });
+			}
 		}
 	}
 }
