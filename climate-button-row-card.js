@@ -241,7 +241,8 @@ class CustomClimateButtonRow extends LitElement {
 			if (target > maxTemp) target = maxTemp;
 			this.hass.callService('climate', 'set_temperature', { entity_id: config.entity, temperature: target });
 		} else if (level === 'auto') {
-			this.hass.callService('switch', 'toggle', { entity_id: config.auto_entity });
+			const domain = config.auto_entity.split('.')[0];
+			this.hass.callService(domain, 'toggle', { entity_id: config.auto_entity });
 		} else if (level === 'on') {
 			if (this.hass.services.climate && this.hass.services.climate.turn_on) {
 				this.hass.callService('climate', 'turn_on', { entity_id: config.entity });
