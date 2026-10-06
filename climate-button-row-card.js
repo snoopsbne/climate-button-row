@@ -58,6 +58,7 @@ class CustomClimateButtonRow extends LitElement {
 			_onName: String,
 			_offName: String,
 			_hideAuto: String,
+			_hideOn: String,
 			_hideOff: String,
 			_minusState: Boolean,
 			_plusState: Boolean,
@@ -129,7 +130,7 @@ class CustomClimateButtonRow extends LitElement {
 						.disabled=${this._autoState}>${this._autoText}</button>
 					<button
 						class='percentage'
-						style='${this._onColor};min-width:${this._width};max-width:${this._width};height:${this._height}'
+						style='${this._onColor};min-width:${this._width};max-width:${this._width};height:${this._height};${this._hideOn}'
 						toggles name="${this._onName}"
 						@click=${this.handleButton}
 						.disabled=${this._onState}>${this._onText}</button>
@@ -207,7 +208,8 @@ class CustomClimateButtonRow extends LitElement {
 		this._onName = 'on';
 		this._offName = 'off';
 		this._hideAuto = config.hideAuto ? 'display:none' : 'display:block';
-		this._hideOff = config.hideOff ? 'display:none' : 'display:block';
+		this._hideOn = (autoOn || config.hideAuto) ? 'display:none' : 'display:block';
+		this._hideOff = (autoOn || config.hideOff) ? 'display:none' : 'display:block';
 
 		this._minusColor = atMin ? 'background-color:' + buttonOffClr : inactiveStyle;
 		this._plusColor = atMax ? 'background-color:' + buttonOffClr : inactiveStyle;
@@ -217,7 +219,7 @@ class CustomClimateButtonRow extends LitElement {
 
 		this._minusState = atMin && allowDisable;
 		this._plusState = atMax && allowDisable;
-		this._autoState = autoOn && allowDisable;
+		this._autoState = false;
 		this._onState = climateOn && allowDisable;
 		this._offState = !climateOn && allowDisable;
 	}

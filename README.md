@@ -38,3 +38,4 @@ step: 1
 - `AUTO` toggles the switch given by `auto_entity`.
 - `ON` / `OFF` call `climate.turn_on` / `climate.turn_off`, falling back to `climate.set_hvac_mode` when those services are not supported.
 - Pressing `OFF` also turns off `auto_entity` if it is on.
+- When `auto_entity` is on, `ON`/`OFF` are hidden; press `AUTO` to turn auto off.
