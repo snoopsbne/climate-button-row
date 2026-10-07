@@ -11,12 +11,12 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 const POSITIONS = {
-  solar: [20, 16],
-  grid: [20, 82],
-  home: [72, 49],
-  battery: [48, 88],
-  battery_2: [82, 88],
-  individual: [[20, 49], [72, 15]],
+  solar: [22, 14],
+  grid: [22, 76],
+  home: [74, 45],
+  battery: [47, 82],
+  battery_2: [82, 82],
+  individual: [[20, 45], [74, 12]],
 };
 
 const COLORS = {
@@ -46,9 +46,9 @@ class DualBatteryFlowCard extends LitElement {
       .container {
         position: relative;
         width: 100%;
-        aspect-ratio: 4 / 3.1;
-        min-height: 300px;
-        max-height: 430px;
+        aspect-ratio: 4 / 3.4;
+        min-height: 320px;
+        max-height: 460px;
       }
       .lines {
         position: absolute;
@@ -56,19 +56,25 @@ class DualBatteryFlowCard extends LitElement {
         width: 100%;
         height: 100%;
       }
-      .lines path {
+      .lines path.track {
         fill: none;
-        stroke-width: 2;
+        stroke: var(--divider-color, #9e9e9e);
+        stroke-width: 1.2;
+        opacity: 0.25;
         stroke-linecap: round;
-        stroke-dasharray: 5 7;
-        opacity: 0.2;
-        vector-effect: non-scaling-stroke;
       }
-      .lines path.active {
-        opacity: 0.95;
+      .lines path.flow {
+        fill: none;
+        stroke-width: 1;
+        stroke-linecap: round;
+        stroke-dasharray: 4 6;
+        opacity: 0.15;
+      }
+      .lines path.flow.active {
+        opacity: 1;
         animation: flow 1.1s linear infinite;
       }
-      .lines path.reverse {
+      .lines path.flow.reverse {
         animation-direction: reverse;
       }
       @keyframes flow {
@@ -127,6 +133,21 @@ class DualBatteryFlowCard extends LitElement {
         font-weight: 500;
         padding: 0 0 4px 4px;
         color: var(--primary-text-color);
+      }
+      @media (max-width: 480px) {
+        .circle {
+          width: 60px;
+          height: 60px;
+        }
+        .circle ha-icon {
+          --mdc-icon-size: 16px;
+        }
+        .value {
+          font-size: 11px;
+        }
+        .label {
+          font-size: 10px;
+        }
       }
     `;
   }
@@ -242,11 +263,13 @@ class DualBatteryFlowCard extends LitElement {
   }
 
   _path(from, to, active, color, reverse) {
+    const d = "M" + from[0] + "," + from[1] + " L" + to[0] + "," + to[1];
     return html`
+      <path class="track" d="${d}"></path>
       <path
-        d="M${from[0]},${from[1]} L${to[0]},${to[1]}"
+        class="flow ${active ? "active" : ""} ${reverse ? "reverse" : ""}"
         style="stroke:${color}"
-        class="${active ? "active" : ""} ${reverse ? "reverse" : ""}"></path>
+        d="${d}"></path>
     `;
   }
 
