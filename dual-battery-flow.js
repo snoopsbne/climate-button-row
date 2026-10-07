@@ -191,12 +191,20 @@ class DualBatteryFlowCard extends LitElement {
     }
     const state = this._state(config.entity);
     const soc = state ? parseFloat(state.state) : NaN;
+    let charge = this._num(config.charge);
+    let discharge = this._num(config.discharge);
+    if (config.power) {
+      const sign = config.invert ? -1 : 1;
+      const value = sign * this._num(config.power);
+      charge = value > 0 ? value : 0;
+      discharge = value < 0 ? -value : 0;
+    }
     return {
       config,
       alt,
       soc: Number.isFinite(soc) ? soc : null,
-      charge: this._num(config.charge),
-      discharge: this._num(config.discharge),
+      charge,
+      discharge,
     };
   }
 

@@ -53,7 +53,7 @@ individual:
 | `solar` | no | Solar generation power sensor (W) |
 | `home` | no | House load power sensor (W) |
 | `grid.consumption` / `grid.production` | no | Import / export power sensors (W); net direction drives the flow animation |
-| `battery` / `battery_2` | no | Battery config: `entity` (SoC %), `charge` (W), `discharge` (W), `name` |
+| `battery` / `battery_2` | no | Battery config: `entity` (SoC %), `charge`/`discharge` (W) or `power` (signed W, positive = charging, adapt with `invert`), `name` |
 | `individual` | no | Extra consumers shown as small nodes, e.g. car charger: `entity` (W) and `name` |
 | `title` | no | Card title |
 
