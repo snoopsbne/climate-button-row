@@ -43,4 +43,5 @@ All original fan-percent-button-row options work. Extra options:
 | `light_entity` | no | - | Light entity toggled by the LIGHT button (button hidden if not set) |
 | `hideLight` | no | false | Hide the LIGHT button |
 | `customLightText` | no | LIGHT | LIGHT button label |
+| `lightWidth` | no | width x 1.15 | LIGHT button width (CSS length) |
 | `isLightOnColor` | no | #43A047 | LIGHT button color when on (with `customTheme: true`) |

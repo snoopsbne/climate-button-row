@@ -41,6 +41,7 @@ class CustomFanLightRow extends LitElement {
 			hideLight: false,
 			customLightText: 'LIGHT',
 			isLightOnColor: '#43A047',
+			lightWidth: null,
 		};
 	}
 
@@ -79,6 +80,7 @@ class CustomFanLightRow extends LitElement {
 			_lightText: String,
 			_lightHide: String,
 			_lightOn: Boolean,
+			_lightWidth: String,
 		};
 	}
 
@@ -116,7 +118,7 @@ class CustomFanLightRow extends LitElement {
 				<div id='button-container' class='box'>
 					<button
 						class='percentage light'
-						style='${this._lightColor};min-width:${this._width};max-width:${this._width};height:${this._height};${this._lightHide}'
+						style='${this._lightColor};min-width:${this._lightWidth};max-width:${this._lightWidth};height:${this._height};${this._lightHide}'
 						@click=${this.toggleLight}
 						.title="Light">${this._lightText}</button>
 					<button
@@ -337,6 +339,7 @@ class CustomFanLightRow extends LitElement {
 		this._lightOn = lightOn;
 		this._lightColor = lightcolor;
 		this._lightText = custLightTxt;
+		this._lightWidth = config.lightWidth || 'calc(' + buttonwidth + ' * 1.15)';
 		this._lightHide = (!lightEntity || hide_Light) ? 'display:none' : 'display:block';
 
 		this._stateObj = stateObj;

@@ -33,6 +33,7 @@ All original fan-percent-button-row options work (`customSetpoints`, `reverseBut
 | `light_entity` | no | - | Light entity toggled by the LIGHT button (button hidden if not set) |
 | `hideLight` | no | false | Hide the LIGHT button |
 | `customLightText` | no | LIGHT | LIGHT button label |
+| `lightWidth` | no | width x 1.15 | LIGHT button width (CSS length) |
 | `isLightOnColor` | no | #43A047 | LIGHT button color when on (with `customTheme: true`) |
 
 The light button simply calls `light.turn_on` / `light.turn_off` on `light_entity`; it does not affect the fan.
