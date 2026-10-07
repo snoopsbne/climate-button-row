@@ -14,9 +14,9 @@ const POSITIONS = {
   solar: [50, 10],
   grid: [14, 47],
   home: [50, 47],
-  battery: [35, 84],
-  battery_2: [65, 84],
-  individual: [[86, 47], [86, 84]],
+  battery: [50, 84],
+  battery_2: [20, 84],
+  individual: [[86, 84], [86, 66], [86, 48], [86, 30]],
 };
 
 const COLORS = {
@@ -93,6 +93,10 @@ class DualBatteryFlowCard extends LitElement {
         align-items: center;
         gap: 4px;
       }
+      .node.individual .circle {
+        width: 56px;
+        height: 56px;
+      }
       .circle {
         display: flex;
         flex-direction: column;
@@ -142,11 +146,24 @@ class DualBatteryFlowCard extends LitElement {
         .circle ha-icon {
           --mdc-icon-size: 16px;
         }
+        .node.individual .circle {
+          width: 46px;
+          height: 46px;
+        }
+        .node.individual .circle ha-icon {
+          --mdc-icon-size: 14px;
+        }
         .value {
           font-size: 11px;
         }
+        .node.individual .value {
+          font-size: 10px;
+        }
         .label {
           font-size: 10px;
+        }
+        .node.individual .label {
+          font-size: 9px;
         }
       }
     `;
@@ -264,6 +281,8 @@ class DualBatteryFlowCard extends LitElement {
         return {
           entity,
           name: (typeof item === "object" && item.name) || (this._state(entity) || {}).attributes?.friendly_name || entity,
+          icon: (typeof item === "object" && item.icon) || "mdi:car-electric",
+          threshold: typeof item === "object" && item.threshold != null ? Number(item.threshold) : null,
           value: this._num(entity),
         };
       }),
@@ -271,8 +290,9 @@ class DualBatteryFlowCard extends LitElement {
   }
 
   _node(key, position, icon, value, stateText, label, color) {
+    const kind = key.startsWith("individual") ? "individual" : key;
     return html`
-      <div class="node" style="left:${position[0]}%;top:${position[1]}%">
+      <div class="node ${kind}" style="left:${position[0]}%;top:${position[1]}%">
         <div class="circle" style="--ring-color:${color}">
           <ha-icon icon="${icon}"></ha-icon>
           <div class="value">${value}</div>
@@ -309,11 +329,15 @@ class DualBatteryFlowCard extends LitElement {
       batteryNodes.push(this._node(key, position, this._batteryIcon(battery), this._fmt(power), stateText, label, this._batteryColor(battery)));
     });
 
+    const individuals = values.individuals
+      .filter((item) => item.threshold == null || item.value > item.threshold)
+      .slice(0, POSITIONS.individual.length);
+
     const individualNodes = [];
-    values.individuals.forEach((item, index) => {
-      const position = POSITIONS.individual[index] || POSITIONS.individual[0];
+    individuals.forEach((item, index) => {
+      const position = POSITIONS.individual[index];
       individualNodes.push(
-        this._node("individual" + index, position, "mdi:car-electric", this._fmt(item.value), "", item.name, item.value > threshold ? COLORS.individual : COLORS.idle)
+        this._node("individual" + index, position, item.icon, this._fmt(item.value), "", item.name, item.value > threshold ? COLORS.individual : COLORS.idle)
       );
     });
 
@@ -330,9 +354,8 @@ class DualBatteryFlowCard extends LitElement {
       };
     });
 
-    const individualRows = [0, 1].map((index) => {
-      const item = values.individuals[index];
-      const position = POSITIONS.individual[index] || POSITIONS.individual[0];
+    const individualRows = POSITIONS.individual.map((position, index) => {
+      const item = individuals[index];
       return {
         d: item ? this._d(position, POSITIONS.home) : "",
         active: !!(item && item.value > threshold),
@@ -358,6 +381,10 @@ class DualBatteryFlowCard extends LitElement {
             <path class="flow ${individualRows[0].active ? "active" : ""} ${individualRows[0].reverse ? "reverse" : ""}" style="stroke:${individualRows[0].color}" d="${individualRows[0].d}"></path>
             <path class="track" d="${individualRows[1].d}"></path>
             <path class="flow ${individualRows[1].active ? "active" : ""} ${individualRows[1].reverse ? "reverse" : ""}" style="stroke:${individualRows[1].color}" d="${individualRows[1].d}"></path>
+            <path class="track" d="${individualRows[2].d}"></path>
+            <path class="flow ${individualRows[2].active ? "active" : ""} ${individualRows[2].reverse ? "reverse" : ""}" style="stroke:${individualRows[2].color}" d="${individualRows[2].d}"></path>
+            <path class="track" d="${individualRows[3].d}"></path>
+            <path class="flow ${individualRows[3].active ? "active" : ""} ${individualRows[3].reverse ? "reverse" : ""}" style="stroke:${individualRows[3].color}" d="${individualRows[3].d}"></path>
           </svg>
           ${this._node("solar", POSITIONS.solar, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", solarActive ? COLORS.solar : COLORS.idle)}
           ${this._node("grid", POSITIONS.grid, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", gridActive ? gridColor : COLORS.idle)}
