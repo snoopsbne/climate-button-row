@@ -204,11 +204,24 @@ class DualBatteryFlowCard extends LitElement {
     if (!battery) {
       return "mdi:battery";
     }
-    const soc = battery.soc == null ? 0 : Math.min(100, Math.max(0, Math.round(battery.soc / 10) * 10));
-    if (battery.charge > 10 && battery.charge > battery.discharge) {
-      return "mdi:battery-charging";
+    const soc = battery.soc == null ? null : Math.floor(Math.min(100, Math.max(0, battery.soc)) / 10) * 10;
+    const charging = battery.charge > 10 && battery.charge >= battery.discharge;
+    if (charging) {
+      if (soc == null || soc >= 100) {
+        return "mdi:battery-charging";
+      }
+      if (soc <= 0) {
+        return "mdi:battery-charging-outline";
+      }
+      return "mdi:battery-charging-" + soc;
     }
-    return soc === 0 ? "mdi:battery-outline" : "mdi:battery-" + soc;
+    if (soc == null || soc >= 100) {
+      return "mdi:battery";
+    }
+    if (soc <= 0) {
+      return "mdi:battery-outline";
+    }
+    return "mdi:battery-" + soc;
   }
 
   _batteryColor(battery) {
