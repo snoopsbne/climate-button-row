@@ -262,15 +262,11 @@ class DualBatteryFlowCard extends LitElement {
     `;
   }
 
-  _path(from, to, active, color, reverse) {
-    const d = "M" + from[0] + "," + from[1] + " L" + to[0] + "," + to[1];
-    return html`
-      <path class="track" d="${d}"></path>
-      <path
-        class="flow ${active ? "active" : ""} ${reverse ? "reverse" : ""}"
-        style="stroke:${color}"
-        d="${d}"></path>
-    `;
+  _d(from, to) {
+    if (!from || !to) {
+      return "";
+    }
+    return "M" + from[0] + "," + from[1] + " L" + to[0] + "," + to[1];
   }
 
   render() {
@@ -292,33 +288,55 @@ class DualBatteryFlowCard extends LitElement {
       batteryNodes.push(this._node(key, position, this._batteryIcon(battery), this._fmt(power), stateText, label, this._batteryColor(battery)));
     });
 
-    const lines = [
-      this._path(POSITIONS.solar, POSITIONS.home, solarActive, COLORS.solar, false),
-      this._path(POSITIONS.grid, POSITIONS.home, gridActive, gridColor, !gridImport),
-    ];
-    values.batteries.forEach((battery, index) => {
-      const key = index === 0 ? "battery" : "battery_2";
-      const charging = battery.charge > threshold && battery.charge >= battery.discharge;
-      const discharging = battery.discharge > threshold;
-      const active = charging || discharging;
-      const color = charging ? COLORS.charge : COLORS.discharge;
-      lines.push(this._path(POSITIONS[key], POSITIONS.home, active, color, charging));
-    });
-
     const individualNodes = [];
     values.individuals.forEach((item, index) => {
       const position = POSITIONS.individual[index] || POSITIONS.individual[0];
       individualNodes.push(
         this._node("individual" + index, position, "mdi:car-electric", this._fmt(item.value), "", item.name, item.value > threshold ? COLORS.individual : COLORS.idle)
       );
-      lines.push(this._path(position, POSITIONS.home, item.value > threshold, COLORS.individual, false));
+    });
+
+    const batteryRows = [0, 1].map((index) => {
+      const battery = values.batteries[index];
+      const position = POSITIONS[index === 0 ? "battery" : "battery_2"];
+      const charging = battery && battery.charge > threshold && battery.charge >= battery.discharge;
+      const discharging = battery && battery.discharge > threshold;
+      return {
+        d: battery ? this._d(position, POSITIONS.home) : "",
+        active: charging || discharging,
+        reverse: charging,
+        color: charging ? COLORS.charge : COLORS.discharge,
+      };
+    });
+
+    const individualRows = [0, 1].map((index) => {
+      const item = values.individuals[index];
+      const position = POSITIONS.individual[index] || POSITIONS.individual[0];
+      return {
+        d: item ? this._d(position, POSITIONS.home) : "",
+        active: !!(item && item.value > threshold),
+        color: COLORS.individual,
+      };
     });
 
     return html`
       <ha-card>
         ${config.title ? html`<div class="title">${config.title}</div>` : ""}
         <div class="container">
-          <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>
+          <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path class="track" d="${this._d(POSITIONS.solar, POSITIONS.home)}"></path>
+            <path class="flow ${solarActive ? "active" : ""}" style="stroke:${COLORS.solar}" d="${this._d(POSITIONS.solar, POSITIONS.home)}"></path>
+            <path class="track" d="${this._d(POSITIONS.grid, POSITIONS.home)}"></path>
+            <path class="flow ${gridActive ? "active" : ""} ${gridImport ? "" : "reverse"}" style="stroke:${gridColor}" d="${this._d(POSITIONS.grid, POSITIONS.home)}"></path>
+            <path class="track" d="${batteryRows[0].d}"></path>
+            <path class="flow ${batteryRows[0].active ? "active" : ""} ${batteryRows[0].reverse ? "reverse" : ""}" style="stroke:${batteryRows[0].color}" d="${batteryRows[0].d}"></path>
+            <path class="track" d="${batteryRows[1].d}"></path>
+            <path class="flow ${batteryRows[1].active ? "active" : ""} ${batteryRows[1].reverse ? "reverse" : ""}" style="stroke:${batteryRows[1].color}" d="${batteryRows[1].d}"></path>
+            <path class="track" d="${individualRows[0].d}"></path>
+            <path class="flow ${individualRows[0].active ? "active" : ""}" style="stroke:${individualRows[0].color}" d="${individualRows[0].d}"></path>
+            <path class="track" d="${individualRows[1].d}"></path>
+            <path class="flow ${individualRows[1].active ? "active" : ""}" style="stroke:${individualRows[1].color}" d="${individualRows[1].d}"></path>
+          </svg>
           ${this._node("solar", POSITIONS.solar, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", solarActive ? COLORS.solar : COLORS.idle)}
           ${this._node("grid", POSITIONS.grid, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", gridActive ? gridColor : COLORS.idle)}
           ${this._node("home", POSITIONS.home, "mdi:home", this._fmt(values.home), "", "Home", COLORS.home)}
