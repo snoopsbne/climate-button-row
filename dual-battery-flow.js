@@ -11,12 +11,12 @@ const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
 const POSITIONS = {
-  solar: [22, 14],
-  grid: [22, 76],
-  home: [74, 45],
-  battery: [47, 82],
-  battery_2: [82, 82],
-  individual: [[20, 45], [74, 12]],
+  solar: [50, 10],
+  grid: [14, 47],
+  home: [50, 47],
+  battery: [35, 84],
+  battery_2: [65, 84],
+  individual: [[86, 47], [86, 84]],
 };
 
 const COLORS = {
@@ -315,6 +315,7 @@ class DualBatteryFlowCard extends LitElement {
       return {
         d: item ? this._d(position, POSITIONS.home) : "",
         active: !!(item && item.value > threshold),
+        reverse: true,
         color: COLORS.individual,
       };
     });
@@ -333,9 +334,9 @@ class DualBatteryFlowCard extends LitElement {
             <path class="track" d="${batteryRows[1].d}"></path>
             <path class="flow ${batteryRows[1].active ? "active" : ""} ${batteryRows[1].reverse ? "reverse" : ""}" style="stroke:${batteryRows[1].color}" d="${batteryRows[1].d}"></path>
             <path class="track" d="${individualRows[0].d}"></path>
-            <path class="flow ${individualRows[0].active ? "active" : ""}" style="stroke:${individualRows[0].color}" d="${individualRows[0].d}"></path>
+            <path class="flow ${individualRows[0].active ? "active" : ""} ${individualRows[0].reverse ? "reverse" : ""}" style="stroke:${individualRows[0].color}" d="${individualRows[0].d}"></path>
             <path class="track" d="${individualRows[1].d}"></path>
-            <path class="flow ${individualRows[1].active ? "active" : ""}" style="stroke:${individualRows[1].color}" d="${individualRows[1].d}"></path>
+            <path class="flow ${individualRows[1].active ? "active" : ""} ${individualRows[1].reverse ? "reverse" : ""}" style="stroke:${individualRows[1].color}" d="${individualRows[1].d}"></path>
           </svg>
           ${this._node("solar", POSITIONS.solar, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", solarActive ? COLORS.solar : COLORS.idle)}
           ${this._node("grid", POSITIONS.grid, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", gridActive ? gridColor : COLORS.idle)}
