@@ -16,7 +16,7 @@ const POSITIONS = {
   home: [50, 47],
   battery: [50, 84],
   battery_2: [20, 84],
-  individual: [[86, 84], [86, 66], [86, 48], [86, 30]],
+  individual: [[86, 84], [86, 67], [86, 50], [86, 33], [86, 16]],
 };
 
 const COLORS = {
@@ -94,8 +94,8 @@ class DualBatteryFlowCard extends LitElement {
         gap: 4px;
       }
       .node.individual .circle {
-        width: 56px;
-        height: 56px;
+        width: 54px;
+        height: 54px;
       }
       .circle {
         display: flex;
@@ -147,23 +147,23 @@ class DualBatteryFlowCard extends LitElement {
           --mdc-icon-size: 16px;
         }
         .node.individual .circle {
-          width: 46px;
-          height: 46px;
+          width: 40px;
+          height: 40px;
         }
         .node.individual .circle ha-icon {
-          --mdc-icon-size: 14px;
+          --mdc-icon-size: 13px;
         }
         .value {
           font-size: 11px;
         }
         .node.individual .value {
-          font-size: 10px;
+          font-size: 9px;
         }
         .label {
           font-size: 10px;
         }
         .node.individual .label {
-          font-size: 9px;
+          font-size: 8px;
         }
       }
     `;
@@ -329,9 +329,12 @@ class DualBatteryFlowCard extends LitElement {
       batteryNodes.push(this._node(key, position, this._batteryIcon(battery), this._fmt(power), stateText, label, this._batteryColor(battery)));
     });
 
-    const individuals = values.individuals
-      .filter((item) => item.threshold == null || item.value > item.threshold)
-      .slice(0, POSITIONS.individual.length);
+    let individuals = values.individuals.filter((item) => item.threshold == null || item.value > item.threshold);
+    const individualCount = config.individual_count != null ? Number(config.individual_count) : null;
+    if (individualCount != null && Number.isFinite(individualCount) && individualCount > 0) {
+      individuals = [...individuals].sort((a, b) => b.value - a.value).slice(0, individualCount);
+    }
+    individuals = individuals.slice(0, POSITIONS.individual.length);
 
     const individualNodes = [];
     individuals.forEach((item, index) => {
@@ -385,6 +388,8 @@ class DualBatteryFlowCard extends LitElement {
             <path class="flow ${individualRows[2].active ? "active" : ""} ${individualRows[2].reverse ? "reverse" : ""}" style="stroke:${individualRows[2].color}" d="${individualRows[2].d}"></path>
             <path class="track" d="${individualRows[3].d}"></path>
             <path class="flow ${individualRows[3].active ? "active" : ""} ${individualRows[3].reverse ? "reverse" : ""}" style="stroke:${individualRows[3].color}" d="${individualRows[3].d}"></path>
+            <path class="track" d="${individualRows[4].d}"></path>
+            <path class="flow ${individualRows[4].active ? "active" : ""} ${individualRows[4].reverse ? "reverse" : ""}" style="stroke:${individualRows[4].color}" d="${individualRows[4].d}"></path>
           </svg>
           ${this._node("solar", POSITIONS.solar, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", solarActive ? COLORS.solar : COLORS.idle)}
           ${this._node("grid", POSITIONS.grid, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", gridActive ? gridColor : COLORS.idle)}
