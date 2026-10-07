@@ -25,6 +25,10 @@ class CustomFanOnOffRow extends LitElement {
 			buttonInactiveColor: '#759aaa',
 			customOffText: 'OFF',
 			customOnText: 'ON',
+			auto_entity: null,
+			hideAuto: false,
+			customAutoText: 'AUTO',
+			isAutoOnColor: '#43A047',
 		};
 	}
 
@@ -43,6 +47,10 @@ class CustomFanOnOffRow extends LitElement {
 			_rightName: String,
 			_leftState: Boolean,
 			_rightState: Boolean,
+			_autoColor: String,
+			_autoText: String,
+			_autoHide: String,
+			_autoWidth: String,
 		};
 	}
 
@@ -75,6 +83,12 @@ class CustomFanOnOffRow extends LitElement {
 		return html`
 			<hui-generic-entity-row .hass="${this.hass}" .config="${this._config}">
 				<div id='button-container' class='box'>
+					<button
+						class='percentage auto'
+						style='${this._autoColor};min-width:${this._autoWidth};max-width:${this._autoWidth};height:${this._height};${this._autoHide}'
+						name="auto"
+						@click=${this.toggleAuto}
+						.title="Auto">${this._autoText}</button>
 					<button
 						class='percentage'
 						style='${this._leftColor};min-width:${this._width};max-width:${this._width};height:${this._height}'
@@ -135,6 +149,18 @@ class CustomFanOnOffRow extends LitElement {
 		const onColor = isOn ? styleOn : styleInactive;
 		const offColor = isOn ? styleInactive : styleOff;
 
+		const autoEntity = config.auto_entity;
+		const autoStateObj = autoEntity ? this.hass.states[autoEntity] : null;
+		const autoOn = autoStateObj ? autoStateObj.state === 'on' : false;
+		if (custTheme) {
+			this._autoColor = autoOn ? 'background-color:' + config.isAutoOnColor : 'background-color:' + config.buttonInactiveColor;
+		} else {
+			this._autoColor = autoOn ? styleOn : styleOff;
+		}
+		this._autoText = config.customAutoText;
+		this._autoWidth = config.autoWidth || 'calc(' + config.width + ' * 1.15)';
+		this._autoHide = (!autoEntity || config.hideAuto) ? 'display:none' : 'display:block';
+
 		this._stateObj = stateObj;
 		this._width = config.width;
 		this._height = config.height;
@@ -166,6 +192,15 @@ class CustomFanOnOffRow extends LitElement {
 		const domain = entityId.split('.')[0];
 		const service = level === 'on' ? 'turn_on' : 'turn_off';
 		this.hass.callService(domain, service, { entity_id: entityId });
+	}
+
+	toggleAuto() {
+		const entityId = this._config.auto_entity;
+		if (!entityId) {
+			return;
+		}
+		const domain = entityId.split('.')[0];
+		this.hass.callService(domain, 'toggle', { entity_id: entityId });
 	}
 }
 

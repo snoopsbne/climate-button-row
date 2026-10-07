@@ -100,3 +100,8 @@ entity: switch.alfrescoswitch_outdoor_lights_l4
 | `customTheme` | no | false | Use the custom colors below instead of theme colors |
 | `customOffText` / `customOnText` | no | OFF / ON | Button labels |
 | `isOffColor` / `isOnColor` / `buttonInactiveColor` | no | #f44c09 / #43A047 / #759aaa | Button colors (with `customTheme: true`) |
+| `auto_entity` | no | - | Entity toggled by the AUTO button (button hidden if not set) |
+| `hideAuto` | no | false | Hide the AUTO button |
+| `customAutoText` | no | AUTO | AUTO button label |
+| `autoWidth` | no | width x 1.15 | AUTO button width (CSS length) |
+| `isAutoOnColor` | no | #43A047 | AUTO button color when on (with `customTheme: true`) |
