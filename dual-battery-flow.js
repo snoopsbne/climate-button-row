@@ -16,7 +16,7 @@ const POSITIONS = {
   home: [50, 47],
   battery: [50, 84],
   battery_2: [20, 84],
-  individual: [[86, 84], [86, 67], [86, 50], [86, 33], [86, 16]],
+  individual: [[86, 16], [86, 33], [86, 50], [86, 67], [86, 84]],
 };
 
 const COLORS = {
