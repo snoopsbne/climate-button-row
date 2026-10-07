@@ -4,6 +4,7 @@ Custom Lovelace cards for Home Assistant:
 
 - `custom:climate-button-row` – control a climate entity: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
 - `custom:fan-light-button-row` – fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
+- `custom:fan-onoff-button-row` – on/off buttons (`OFF` `ON`) for fans and switches that only support on/off.
 - `custom:dual-battery-flow-card` – solar/grid/home power flow with **two batteries** (SoC, charge/discharge per battery) and optional individual devices, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
 
 ## Installation
@@ -73,6 +74,26 @@ All original fan-percent-button-row options work (`customSetpoints`, `reverseBut
 | `isLightOnColor` | no | #43A047 | LIGHT button color when on (with `customTheme: true`) |
 
 The light button simply calls `light.turn_on` / `light.turn_off` on `light_entity`; it does not affect the fan.
+
+## fan-onoff-button-row
+
+On/off button row (`OFF` `ON`) for fans and switches that only support on/off. Works with `fan.*` and `switch.*` entities.
+
+```yaml
+type: custom:fan-onoff-button-row
+entity: switch.alfrescoswitch_outdoor_lights_l4
+```
+
+| Option | Required | Default | Description |
+|---|---|---|---|
+| `entity` | yes | - | `fan.*` or `switch.*` entity |
+| `name` | no | entity name | Row label |
+| `reverseButtons` | no | false | Show ON before OFF |
+| `allowDisablingButtons` | no | true | Disable the button matching the current state |
+| `width` / `height` | no | 30px / 30px | Button size (CSS length) |
+| `customTheme` | no | false | Use the custom colors below instead of theme colors |
+| `customOffText` / `customOnText` | no | OFF / ON | Button labels |
+| `isOffColor` / `isOnColor` / `buttonInactiveColor` | no | #f44c09 / #43A047 / #759aaa | Button colors (with `customTheme: true`) |
 
 ## climate-button-row
 

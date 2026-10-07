@@ -80,3 +80,23 @@ All original fan-percent-button-row options work. Extra options:
 | `customLightText` | no | LIGHT | LIGHT button label |
 | `lightWidth` | no | width x 1.15 | LIGHT button width (CSS length) |
 | `isLightOnColor` | no | #43A047 | LIGHT button color when on (with `customTheme: true`) |
+
+## fan-onoff-button-row
+
+On/off button row (`OFF` `ON`) for fans and switches that only support on/off. Works with `fan.*` and `switch.*` entities.
+
+```yaml
+type: custom:fan-onoff-button-row
+entity: switch.alfrescoswitch_outdoor_lights_l4
+```
+
+| Option | Required | Default | Description |
+|---|---|---|---|
+| `entity` | yes | - | `fan.*` or `switch.*` entity |
+| `name` | no | entity name | Row label |
+| `reverseButtons` | no | false | Show ON before OFF |
+| `allowDisablingButtons` | no | true | Disable the button matching the current state |
+| `width` / `height` | no | 30px / 30px | Button size (CSS length) |
+| `customTheme` | no | false | Use the custom colors below instead of theme colors |
+| `customOffText` / `customOnText` | no | OFF / ON | Button labels |
+| `isOffColor` / `isOnColor` / `buttonInactiveColor` | no | #f44c09 / #43A047 / #759aaa | Button colors (with `customTheme: true`) |
