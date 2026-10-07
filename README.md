@@ -1,9 +1,10 @@
-# Button Rows
+# Custom Cards
 
-Custom Lovelace button rows for Home Assistant:
+Custom Lovelace cards for Home Assistant:
 
 - `custom:climate-button-row` – control a climate entity: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
 - `custom:fan-light-button-row` – fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
+- `custom:dual-battery-flow-card` – solar/grid/home power flow with **two batteries** (SoC, charge/discharge per battery) and optional individual devices, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
 
 ## Installation
 
@@ -22,6 +23,41 @@ type: custom:fan-light-button-row
 entity: fan.kitchen
 light_entity: light.kitchen_fan_light
 ```
+
+```yaml
+type: custom:dual-battery-flow-card
+solar: sensor.total_dc_power
+home: sensor.load_power
+grid:
+  consumption: sensor.import_power
+  production: sensor.export_power
+battery:
+  entity: sensor.battery_level
+  charge: sensor.battery_in
+  discharge: sensor.battery_out
+  name: House Battery
+battery_2:
+  entity: sensor.garagebtproxy_state_of_charge
+  charge: sensor.garagebtproxy_smgii_charging_power
+  discharge: sensor.garagebtproxy_smgii_discharging_power
+  name: Garage Battery
+individual:
+  - entity: sensor.ev_charger_phase_a_power
+    name: Car
+```
+
+## dual-battery-flow-card
+
+| Option | Required | Description |
+|---|---|---|
+| `solar` | no | Solar generation power sensor (W) |
+| `home` | no | House load power sensor (W) |
+| `grid.consumption` / `grid.production` | no | Import / export power sensors (W); net direction drives the flow animation |
+| `battery` / `battery_2` | no | Battery config: `entity` (SoC %), `charge` (W), `discharge` (W), `name` |
+| `individual` | no | Extra consumers shown as small nodes, e.g. car charger: `entity` (W) and `name` |
+| `title` | no | Card title |
+
+Lines animate in the direction of the actual flow (import vs export, charge vs discharge); use `-` instead of an entity if a value is unavailable.
 
 ## fan-light-button-row
 

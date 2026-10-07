@@ -1,4 +1,39 @@
-Custom Lovelace button rows for Home Assistant.
+Custom Lovelace cards for Home Assistant.
+
+## dual-battery-flow-card
+
+Power flow card with solar, grid, home and **two batteries**, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus). Lines animate in the direction of the actual flow (import/export, charge/discharge).
+
+```yaml
+type: custom:dual-battery-flow-card
+solar: sensor.total_dc_power
+home: sensor.load_power
+grid:
+  consumption: sensor.import_power
+  production: sensor.export_power
+battery:
+  entity: sensor.battery_level
+  charge: sensor.battery_in
+  discharge: sensor.battery_out
+  name: House Battery
+battery_2:
+  entity: sensor.garagebtproxy_state_of_charge
+  charge: sensor.garagebtproxy_smgii_charging_power
+  discharge: sensor.garagebtproxy_smgii_discharging_power
+  name: Garage Battery
+individual:
+  - entity: sensor.ev_charger_phase_a_power
+    name: Car
+```
+
+| Option | Required | Description |
+|---|---|---|
+| `solar` | no | Solar generation power sensor (W) |
+| `home` | no | House load power sensor (W) |
+| `grid.consumption` / `grid.production` | no | Import / export power sensors (W) |
+| `battery` / `battery_2` | no | Battery config: `entity` (SoC %), `charge` (W), `discharge` (W), `name` |
+| `individual` | no | Extra consumers shown as small nodes |
+| `title` | no | Card title |
 
 ## climate-button-row
 
