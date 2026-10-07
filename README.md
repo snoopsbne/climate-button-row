@@ -1,12 +1,13 @@
-# Climate Button Row
+# Button Rows
 
-A Home Assistant Lovelace card to control a climate entity in a button row: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
+Custom Lovelace button rows for Home Assistant:
 
-Inspired by [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
+- `custom:climate-button-row` – control a climate entity: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
+- `custom:fan-light-button-row` – fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
 
 ## Installation
 
-1. Install via [HACS](https://hacs.xyz/) (Lovelace > Custom repositories > add this repo), or copy `climate-button-row-card.js` to `/config/www/` and add it as a module resource.
+1. Install via [HACS](https://hacs.xyz/) (Lovelace > Custom repositories > add this repo), or copy the JS files to `/config/www/` and add them as module resources.
 2. Add a card to a dashboard:
 
 ```yaml
@@ -16,7 +17,29 @@ auto_entity: switch.bedroom_auto
 step: 1
 ```
 
-## Configuration
+```yaml
+type: custom:fan-light-button-row
+entity: fan.kitchen
+light_entity: light.kitchen_fan_light
+```
+
+## fan-light-button-row
+
+All original fan-percent-button-row options work (`customSetpoints`, `reverseButtons`, `isTwoSpeedFan`, `hideOff`, `sendStateWithSpeed`, `allowDisablingButtons`, `offPercentage`/`lowPercentage`/`medPercentage`/`hiPercentage`, `width`/`height`, `customTheme` and colors, `customOffText`/`customLowText`/`customMedText`/`customHiText`). Extra options:
+
+| Option | Required | Default | Description |
+|---|---|---|---|
+| `entity` | yes | - | Fan entity to control |
+| `light_entity` | no | - | Light entity toggled by the LIGHT button (button hidden if not set) |
+| `hideLight` | no | false | Hide the LIGHT button |
+| `customLightText` | no | LIGHT | LIGHT button label |
+| `isLightOnColor` | no | #43A047 | LIGHT button color when on (with `customTheme: true`) |
+
+The light button simply calls `light.turn_on` / `light.turn_off` on `light_entity`; it does not affect the fan.
+
+## climate-button-row
+
+### Climate Configuration
 
 | Option | Required | Default | Description |
 |---|---|---|---|
@@ -31,7 +54,7 @@ step: 1
 | `width` / `height` | no | 30px | Button size |
 | `customMinusText` / `customPlusText` / `customAutoText` / `customOnText` / `customOffText` | no | - / + / AUTO / ON / OFF | Button labels |
 
-## How it works
+### Climate How it works
 
 - `-` / `+` call `climate.set_temperature` with the current setpoint +/- `step` (default 0.5).
 - The setpoint display shows one decimal (e.g. `21.5`).

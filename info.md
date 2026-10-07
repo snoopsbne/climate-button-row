@@ -1,6 +1,8 @@
-A Lovelace card to control a climate entity in a button row: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
+Custom Lovelace button rows for Home Assistant.
 
-## Configuration
+## climate-button-row
+
+Control a climate entity in a button row: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
 
 ```yaml
 type: custom:climate-button-row
@@ -22,15 +24,23 @@ step: 1
 | `width` / `height` | no | 30px | Button size |
 | `customMinusText` / `customPlusText` / `customAutoText` / `customOnText` / `customOffText` | no | - / + / AUTO / ON / OFF | Button labels |
 
-## Usage
+`-`/`+` call `climate.set_temperature` (setpoint shown with one decimal), `AUTO` toggles `auto_entity` (switch or input_boolean), `ON`/`OFF` call `climate.turn_on`/`turn_off` (falling back to `set_hvac_mode`). Pressing `OFF` also turns off `auto_entity` if it is on. When `auto_entity` is on, `ON`/`OFF` are hidden; press `AUTO` to turn auto off.
 
-1. Install this repository with HACS (Lovelace > Custom repositories).
-2. Add a card to a dashboard:
+## fan-light-button-row
+
+Fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
 
 ```yaml
-type: custom:climate-button-row
-entity: climate.bedroom
-auto_entity: switch.bedroom_auto
+type: custom:fan-light-button-row
+entity: fan.kitchen
+light_entity: light.kitchen_fan_light
 ```
 
-`-`/`+` call `climate.set_temperature` (setpoint shown with one decimal), `AUTO` toggles `auto_entity` (switch or input_boolean), `ON`/`OFF` call `climate.turn_on`/`turn_off` (falling back to `set_hvac_mode`). Pressing `OFF` also turns off `auto_entity` if it is on. When `auto_entity` is on, `ON`/`OFF` are hidden; press `AUTO` to turn auto off.
+All original fan-percent-button-row options work. Extra options:
+
+| Option | Required | Default | Description |
+|---|---|---|---|
+| `light_entity` | no | - | Light entity toggled by the LIGHT button (button hidden if not set) |
+| `hideLight` | no | false | Hide the LIGHT button |
+| `customLightText` | no | LIGHT | LIGHT button label |
+| `isLightOnColor` | no | #43A047 | LIGHT button color when on (with `customTheme: true`) |
