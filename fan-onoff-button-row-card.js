@@ -146,8 +146,10 @@ class CustomFanOnOffRow extends LitElement {
 			: 'background-color: var(--ha-switch-checked-background-color, var(--ha-color-fill-primary-normal-resting)); border-color: var(--ha-switch-checked-border-color, var(--ha-color-border-primary-loud))';
 		const styleOff = custTheme
 			? 'background-color:' + config.isOffColor
+			: 'background-color: var(--ha-switch-checked-background-color, var(--ha-color-fill-primary-normal-resting)); border-color: var(--ha-switch-checked-border-color, var(--ha-color-border-primary-loud))';
+		const styleInactive = custTheme
+			? 'background-color:' + config.buttonInactiveColor
 			: 'background-color: var(--ha-switch-background-color, var(--ha-color-fill-disabled-quiet-resting)); border-color: var(--ha-switch-border-color, var(--ha-color-border-neutral-normal))';
-		const styleInactive = 'background-color:' + config.buttonInactiveColor;
 
 		const onColor = isOn ? styleOn : styleInactive;
 		const offColor = isOn ? styleInactive : styleOff;
@@ -158,7 +160,7 @@ class CustomFanOnOffRow extends LitElement {
 		if (custTheme) {
 			this._autoColor = autoOn ? 'background-color:' + config.isAutoOnColor : 'background-color:' + config.buttonInactiveColor;
 		} else {
-			this._autoColor = autoOn ? styleOn : styleOff;
+			this._autoColor = autoOn ? styleOn : styleInactive;
 		}
 		this._autoText = config.customAutoText;
 		this._autoWidth = config.autoWidth || 'calc(' + config.width + ' * 1.15)';
