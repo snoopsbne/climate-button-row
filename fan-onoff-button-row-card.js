@@ -108,7 +108,10 @@ class CustomFanOnOffRow extends LitElement {
 
 	firstUpdated() {
 		super.firstUpdated();
-		this.shadowRoot.getElementById('button-container').addEventListener('click', (ev) => ev.stopPropagation());
+		const container = this.shadowRoot.getElementById('button-container');
+		['click', 'touchstart', 'touchend', 'touchcancel', 'mousedown', 'mouseup', 'keydown'].forEach((event) =>
+			container.addEventListener(event, (ev) => ev.stopPropagation())
+		);
 	}
 
 	setConfig(config) {
