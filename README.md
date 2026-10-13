@@ -120,7 +120,7 @@ entity: switch.alfrescoswitch_outdoor_lights_l4
 ### Climate How it works
 
 - The label shows the room temperature (`current_temperature`, one decimal); if the entity has no room temperature attribute, the setpoint is shown instead.
-- `-` / `+` call `climate.set_temperature` with the current setpoint +/- `step` (default 0.5) and show the new setpoint in the label for 3 seconds (accent colour + dotted underline), then revert to the room temperature.
+- The first `-` / `+` press shows the current setpoint for 3 seconds without changing it (accent colour + dotted underline); press again while it is showing to adjust by `step` (default 0.5) via `climate.set_temperature` — every press restarts the 3 seconds, then the label reverts to the room temperature.
 - `AUTO` toggles the switch given by `auto_entity`.
 - `ON` / `OFF` call `climate.turn_on` / `climate.turn_off`, falling back to `climate.set_hvac_mode` when those services are not supported.
 - Pressing `OFF` also turns off `auto_entity` if it is on.

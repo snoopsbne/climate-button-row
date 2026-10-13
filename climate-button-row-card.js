@@ -265,8 +265,15 @@ class CustomClimateButtonRow extends LitElement {
 			const current = Number(stateObj.attributes.temperature);
 			const minTemp = config.min_temp ?? (stateObj.attributes.min_temp ?? 0);
 			const maxTemp = config.max_temp ?? (stateObj.attributes.max_temp ?? 100);
+			const revealing = !(this._setpointVisibleUntil > Date.now() && this._pendingSetpoint !== null);
+			if (revealing) {
+				// First -/+ press only shows the current setpoint; press again to adjust.
+				if (Number.isFinite(current)) this.showSetpoint(current);
+				return;
+			}
+			const base = Number.isFinite(this._pendingSetpoint) ? this._pendingSetpoint : current;
 			const delta = level === 'minus' ? -this._step : this._step;
-			let target = Math.round((current + delta) * 10) / 10;
+			let target = Math.round((base + delta) * 10) / 10;
 			if (target < minTemp) target = minTemp;
 			if (target > maxTemp) target = maxTemp;
 			this.hass.callService('climate', 'set_temperature', { entity_id: config.entity, temperature: target });
@@ -293,8 +300,9 @@ class CustomClimateButtonRow extends LitElement {
 		}
 	}
 
-	// Show the just-commanded setpoint in the label briefly; the timer is
-	// restarted on every press, then the label swaps back to the room temp.
+	// Show a setpoint in the label briefly (the current one on the first
+	// press, the new one after an adjustment); the timer is restarted on
+	// every press, then the label swaps back to the room temp.
 	showSetpoint(target) {
 		this._pendingSetpoint = target;
 		this._setpointVisibleUntil = Date.now() + SETPOINT_DISPLAY_MS;
