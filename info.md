@@ -37,7 +37,7 @@ individual:
 
 ## climate-button-row
 
-Control a climate entity in a button row: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
+Control a climate entity in a button row: `-` `[temp]` `+` `AUTO` `ON` `OFF`.
 
 ```yaml
 type: custom:climate-button-row
@@ -59,7 +59,7 @@ step: 1
 | `width` / `height` | no | 30px | Button size |
 | `customMinusText` / `customPlusText` / `customAutoText` / `customOnText` / `customOffText` | no | - / + / AUTO / ON / OFF | Button labels |
 
-`-`/`+` call `climate.set_temperature` (setpoint shown with one decimal), `AUTO` toggles `auto_entity` (switch or input_boolean), `ON`/`OFF` call `climate.turn_on`/`turn_off` (falling back to `set_hvac_mode`). Pressing `OFF` also turns off `auto_entity` if it is on. When `auto_entity` is on, `ON`/`OFF` are hidden; press `AUTO` to turn auto off.
+The label shows the room temperature by default; pressing `-`/`+` shows the new setpoint for 3 seconds (accent colour + dotted underline) before reverting. `-`/`+` call `climate.set_temperature` (one decimal; the setpoint is shown instead of the room temp when the entity has no `current_temperature`), `AUTO` toggles `auto_entity` (switch or input_boolean), `ON`/`OFF` call `climate.turn_on`/`turn_off` (falling back to `set_hvac_mode`). Pressing `OFF` also turns off `auto_entity` if it is on. When `auto_entity` is on, `ON`/`OFF` are hidden; press `AUTO` to turn auto off.
 
 ## fan-light-button-row
 

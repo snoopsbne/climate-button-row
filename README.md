@@ -2,7 +2,7 @@
 
 Custom Lovelace cards for Home Assistant:
 
-- `custom:climate-button-row` – control a climate entity: `-` `[setpoint]` `+` `AUTO` `ON` `OFF`.
+- `custom:climate-button-row` – control a climate entity: `-` `[temp]` `+` `AUTO` `ON` `OFF`.
 - `custom:fan-light-button-row` – fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
 - `custom:fan-onoff-button-row` – on/off buttons (`OFF` `ON`) for fans and switches that only support on/off.
 - `custom:dual-battery-flow-card` – solar/grid/home power flow with **two batteries** (SoC, charge/discharge per battery) and optional individual devices, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
@@ -119,8 +119,8 @@ entity: switch.alfrescoswitch_outdoor_lights_l4
 
 ### Climate How it works
 
-- `-` / `+` call `climate.set_temperature` with the current setpoint +/- `step` (default 0.5).
-- The setpoint display shows one decimal (e.g. `21.5`).
+- The label shows the room temperature (`current_temperature`, one decimal); if the entity has no room temperature attribute, the setpoint is shown instead.
+- `-` / `+` call `climate.set_temperature` with the current setpoint +/- `step` (default 0.5) and show the new setpoint in the label for 3 seconds (accent colour + dotted underline), then revert to the room temperature.
 - `AUTO` toggles the switch given by `auto_entity`.
 - `ON` / `OFF` call `climate.turn_on` / `climate.turn_off`, falling back to `climate.set_hvac_mode` when those services are not supported.
 - Pressing `OFF` also turns off `auto_entity` if it is on.

@@ -6,6 +6,10 @@ window.customCards.push({
   preview: false,
 });
 
+// How long the setpoint stays visible after a -/+ press before the row
+// reverts to showing the room temperature.
+const SETPOINT_DISPLAY_MS = 3000;
+
 const LitElement = customElements.get("ha-panel-lovelace") ? Object.getPrototypeOf(customElements.get("ha-panel-lovelace")) : Object.getPrototypeOf(customElements.get("hc-lovelace"));
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
@@ -32,6 +36,9 @@ class CustomClimateButtonRow extends LitElement {
 			customOnText: 'ON',
 			customOffText: 'OFF',
 		};
+		this._pendingSetpoint = null;
+		this._setpointVisibleUntil = 0;
+		this._setpointTimer = null;
 	}
 
 	static get properties() {
@@ -49,6 +56,7 @@ class CustomClimateButtonRow extends LitElement {
 			_offColor: String,
 			_minusText: String,
 			_tempText: String,
+			_showSetpoint: Boolean,
 			_plusText: String,
 			_autoText: String,
 			_onText: String,
@@ -102,6 +110,11 @@ class CustomClimateButtonRow extends LitElement {
 				align-items: center;
 				justify-content: center;
 			}
+			.temp.setpoint {
+				color: var(--primary-color, inherit);
+				text-decoration: underline dotted;
+				text-underline-offset: 3px;
+			}
 		`;
 	}
 
@@ -115,7 +128,7 @@ class CustomClimateButtonRow extends LitElement {
 						toggles name="${this._minusName}"
 						@click=${this.handleButton}
 						.disabled=${this._minusState}>${this._minusText}</button>
-					<span class='temp' style='height:${this._height}'>${this._tempText}</span>
+					<span class='temp ${this._showSetpoint ? 'setpoint' : ''}' style='height:${this._height}'>${this._tempText}</span>
 					<button
 						class='percentage'
 						style='${this._plusColor};min-width:${this._width};max-width:${this._width};height:${this._height}'
@@ -153,6 +166,14 @@ class CustomClimateButtonRow extends LitElement {
 		);
 	}
 
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		if (this._setpointTimer) {
+			clearTimeout(this._setpointTimer);
+			this._setpointTimer = null;
+		}
+	}
+
 	setConfig(config) {
 		this._config = { ...this._config, ...config };
 	}
@@ -177,14 +198,20 @@ class CustomClimateButtonRow extends LitElement {
 		const buttonOffClr = config.buttonInactiveColor;
 		const allowDisable = config.allowDisablingButtons;
 
-		const current = stateObj && stateObj.attributes ? Number(stateObj.attributes.temperature) : null;
+		const targetAttr = stateObj && stateObj.attributes ? stateObj.attributes.temperature : null;
+		const target = targetAttr != null && Number.isFinite(Number(targetAttr)) ? Number(targetAttr) : null;
+		const roomAttr = stateObj && stateObj.attributes ? stateObj.attributes.current_temperature : null;
+		const room = roomAttr != null && Number.isFinite(Number(roomAttr)) ? Number(roomAttr) : null;
+		const showSetpoint = this._setpointVisibleUntil > Date.now() && this._pendingSetpoint !== null;
+		const shown = showSetpoint ? this._pendingSetpoint : (room !== null ? room : target);
+
 		const minTemp = config.min_temp ?? (stateObj && stateObj.attributes ? Number(stateObj.attributes.min_temp) : 0);
 		const maxTemp = config.max_temp ?? (stateObj && stateObj.attributes ? Number(stateObj.attributes.max_temp) : 100);
 
 		const climateOn = stateObj && stateObj.state !== 'off';
 		const autoOn = autoStateObj && autoStateObj.state === 'on';
-		const atMin = current !== null && current - step < minTemp;
-		const atMax = current !== null && current + step > maxTemp;
+		const atMin = target !== null && target - step < minTemp;
+		const atMax = target !== null && target + step > maxTemp;
 
 		let inactiveStyle;
 		let activeStyle;
@@ -202,7 +229,8 @@ class CustomClimateButtonRow extends LitElement {
 		this._height = buttonHeight;
 		this._minusText = config.customMinusText;
 		this._plusText = config.customPlusText;
-		this._tempText = current !== null ? current.toFixed(1) + 'c' : '--';
+		this._showSetpoint = showSetpoint;
+		this._tempText = shown !== null ? shown.toFixed(1) + 'c' : '--';
 		this._autoText = config.customAutoText;
 		this._onText = config.customOnText;
 		this._offText = config.customOffText;
@@ -242,6 +270,7 @@ class CustomClimateButtonRow extends LitElement {
 			if (target < minTemp) target = minTemp;
 			if (target > maxTemp) target = maxTemp;
 			this.hass.callService('climate', 'set_temperature', { entity_id: config.entity, temperature: target });
+			this.showSetpoint(target);
 		} else if (level === 'auto') {
 			const domain = config.auto_entity.split('.')[0];
 			this.hass.callService(domain, 'toggle', { entity_id: config.auto_entity });
@@ -262,6 +291,21 @@ class CustomClimateButtonRow extends LitElement {
 				this.hass.callService(domain, 'turn_off', { entity_id: config.auto_entity });
 			}
 		}
+	}
+
+	// Show the just-commanded setpoint in the label briefly; the timer is
+	// restarted on every press, then the label swaps back to the room temp.
+	showSetpoint(target) {
+		this._pendingSetpoint = target;
+		this._setpointVisibleUntil = Date.now() + SETPOINT_DISPLAY_MS;
+		if (this._setpointTimer) clearTimeout(this._setpointTimer);
+		this._setpointTimer = setTimeout(() => {
+			this._setpointTimer = null;
+			this._pendingSetpoint = null;
+			this._setpointVisibleUntil = 0;
+			this.hassChanged();
+		}, SETPOINT_DISPLAY_MS);
+		this.hassChanged();
 	}
 }
 
