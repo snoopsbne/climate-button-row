@@ -36,6 +36,9 @@ class DualBatteryFlowCard extends LitElement {
       :host {
         display: block;
       }
+      ha-card {
+        padding-bottom: 10px;
+      }
       .title {
         font-size: 14px;
         font-weight: 600;
@@ -95,6 +98,7 @@ class DualBatteryFlowCard extends LitElement {
       .node {
         position: absolute;
         z-index: 2;
+        width: max-content;
         transform: translate(-50%, -50%);
         display: flex;
         flex-direction: column;
