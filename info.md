@@ -2,7 +2,7 @@ Custom Lovelace cards for Home Assistant.
 
 ## dual-battery-flow-card
 
-Compact **grouped** power flow card: header row with title + **Home chip** (live house load, glows while consuming), then **Inputs** (solar, grid with import/export/idle), **Batteries** (solar, grid, home and **two batteries** + optional car, SoC and charge/discharge power per member) and **Devices** (top-4 consumers ranked by power) as tile groups with dashed bus lines that animate in the direction of the actual flow (import/export, charge/discharge). Tap a tile (or Enter/Space) to open its more-info dialog; groups hide when nothing is configured. Inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
+Compact **grouped flow diagram**: the **Home** node (live house load, ring glows while consuming) is the hub at the centre; **Inputs** (solar, grid with import/export/idle) cluster on the left, **Batteries** (house, garage and the optional car, SoC and max charge/discharge power per member) run along the bottom, and the top-4 consumers rank into the **Devices** column on the right. Small uppercase group tags label the clusters. Animated dashed flow lines run node→hub in the direction of the actual flow (reversed on export/charging) and their stroke width scales with power for at-a-glance reading; active nodes glow, idle nodes dim. Tap a node (or Enter/Space) to open its more-info dialog. Inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
 
 ```yaml
 type: custom:dual-battery-flow-card

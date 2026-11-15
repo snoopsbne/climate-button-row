@@ -5,7 +5,7 @@ Custom Lovelace cards for Home Assistant:
 - `custom:climate-button-row` – control a climate entity: `-` `[temp]` `+` `AUTO` `ON` `OFF`.
 - `custom:fan-light-button-row` – fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
 - `custom:fan-onoff-button-row` – on/off buttons (`OFF` `ON`) for fans and switches that only support on/off.
-- `custom:dual-battery-flow-card` – compact grouped power flow card: header Home chip, **Inputs / Batteries / Devices** tile groups (two batteries + optional car, top-4 ranked devices) with animated flow buses, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
+- `custom:dual-battery-flow-card` – compact grouped power flow diagram: **Home** hub in the centre, **Inputs** (solar, grid) on the left, **Batteries** (house + garage + optional car) along the bottom, **Devices** (top-4 ranked) down the right, with magnitude-weighted animated flow lines, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
 
 ## Installation
 
@@ -60,7 +60,7 @@ individual:
 | `individual_count` | no | How many device tiles to show (ranked by power, hard cap 4) |
 | `title` | no | Card title |
 
-Compact grouped layout instead of the old circle diagram: a header row with the title and a **Home chip** (live house load, glows while consuming), then three groups — **Inputs** (Solar, Grid with import/export/idle), **Batteries** (house + garage batteries and the optional car, each tile showing power and SoC %) and **Devices** (the top-4 consumers ranked by power). Each group has a dashed bus line and each tile a small flow bar that animate in the direction of the actual flow (import vs export, charge vs discharge); idle tiles and buses are dimmed. Groups hide themselves when nothing is configured or eligible. Tap a tile (or focus it and press Enter/Space) to open the entity's more-info dialog. Use `-` instead of an entity if a value is unavailable.
+Compact **grouped flow diagram**: the Home node (live house load, ring glows while consuming) sits at the centre as the hub. **Inputs** cluster on the left (Solar on top, Grid on the bottom with an import/export/idle sub-label), **Batteries** run along the bottom (house battery, garage battery and the optional car on the bottom right, each node showing the battery/car icon, max charge/discharge power and SoC %), and the top-4 consumers rank into the **Devices** column down the right edge. Small uppercase group tags label each cluster. Animated dashed flow lines connect every node to the Home hub: the dashes run in the direction of the actual flow (reversed while exporting or charging) and each line's width scales with its power (1.5–6 px) so the biggest flows read at a glance. Active nodes glow, idle nodes and lines dim. The card keeps a compact 100/64 aspect ratio and scales circles and type with the card width. Tap a node (or focus it and press Enter/Space) to open the entity's more-info dialog. Use `-` instead of an entity if a value is unavailable.
 
 ## fan-light-button-row
 

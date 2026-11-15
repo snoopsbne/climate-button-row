@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped power flow card: Inputs, Batteries (two batteries + optional car) and ranked Devices as tiles with animated flow buses.",
+  description: "Compact grouped flow diagram: Inputs, Batteries (house + garage + optional car) and top Devices flow into the Home hub with magnitude-weighted animated lines.",
   preview: false,
 });
 
@@ -21,6 +21,8 @@ const COLORS = {
   idle: "var(--disabled-text-color, #9e9e9e)",
 };
 
+const HOME = [48, 40];
+
 class DualBatteryFlowCard extends LitElement {
   static get properties() {
     return {
@@ -34,223 +36,194 @@ class DualBatteryFlowCard extends LitElement {
       :host {
         display: block;
       }
-      .wrap {
-        padding: 12px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        container-type: inline-size;
-      }
-      .head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
       .title {
         font-size: 14px;
         font-weight: 600;
         color: var(--primary-text-color);
+        padding: 4px 4px 0;
       }
-      .home-chip {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 5px 12px;
-        border-radius: 999px;
-        background: var(--ha-card-background, var(--card-background-color, #fff));
-        box-shadow: 0 0 0 1.5px var(--home-color, #546e7a), var(--home-glow, 0 0 transparent);
+      .container {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 100 / 64;
+        min-height: 240px;
+        max-height: 400px;
+        container-type: inline-size;
       }
-      .home-chip ha-icon {
-        --mdc-icon-size: 18px;
-        color: var(--home-color, #546e7a);
+      svg.lines {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
       }
-      .home-value {
-        font-size: 15px;
+      path.track {
+        fill: none;
+        stroke: var(--divider-color, rgba(0, 0, 0, 0.12));
+        stroke-width: 1.2px;
+        opacity: 0.25;
+      }
+      path.flow {
+        fill: none;
+        stroke-dasharray: 6 10;
+        stroke-linecap: round;
+        opacity: 0.12;
+      }
+      path.flow.active {
+        opacity: 0.95;
+        animation: flow 1.1s linear infinite;
+      }
+      path.flow.reverse {
+        animation-direction: reverse;
+      }
+      @keyframes flow {
+        to {
+          stroke-dashoffset: -16;
+        }
+      }
+      .group-tag {
+        position: absolute;
+        z-index: 6;
+        font-size: 9px;
         font-weight: 700;
-        font-variant-numeric: tabular-nums;
-        color: var(--primary-text-color);
-      }
-      .home-label {
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--secondary-text-color);
-      }
-      .group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .group-head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .dot {
-        flex: none;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--accent);
-      }
-      .dot.pulse {
-        animation: dotpulse 1.6s ease-in-out infinite;
-      }
-      @keyframes dotpulse {
-        0%,
-        100% {
-          opacity: 0.45;
-        }
-        50% {
-          opacity: 1;
-        }
-      }
-      .group-name {
-        font-size: 10px;
-        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.14em;
         color: var(--secondary-text-color);
+        background: var(--ha-card-background, var(--card-background-color, #fff));
+        padding: 0 4px;
+        border-radius: 4px;
       }
-      .bus {
-        flex: 1;
-        height: 2px;
-        border-radius: 2px;
-        background: repeating-linear-gradient(90deg, var(--accent) 0 5px, transparent 5px 12px);
-        opacity: 0.18;
-      }
-      .bus.active {
-        opacity: 0.85;
-        animation: busflow 1.1s linear infinite;
-      }
-      .bus.reverse {
-        animation-direction: reverse;
-      }
-      @keyframes busflow {
-        to {
-          background-position: 12px 0;
-        }
-      }
-      .tiles {
-        display: grid;
-        gap: 8px;
-      }
-      .cols-1 {
-        grid-template-columns: repeat(1, 1fr);
-      }
-      .cols-2 {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .cols-3 {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      .cols-4 {
-        grid-template-columns: repeat(4, 1fr);
-      }
-      @media (max-width: 520px) {
-        .cols-4,
-        .cols-3 {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      @container (max-width: 500px) {
-        .cols-4 {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      @container (max-width: 400px) {
-        .cols-3 {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      .tile {
-        position: relative;
+      .node {
+        position: absolute;
+        z-index: 2;
+        transform: translate(-50%, -50%);
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 7px 9px 8px;
-        border-radius: 10px;
-        background: var(--ha-card-background, var(--card-background-color, #fff));
-        box-shadow: 0 0 0 1px var(--divider-color, rgba(0, 0, 0, 0.12));
-        transition: box-shadow 0.2s, transform 0.2s;
-        min-width: 0;
-      }
-      .tile[role="button"] {
-        cursor: pointer;
-      }
-      .tile[role="button"]:hover,
-      .tile[role="button"]:focus-visible {
-        transform: translateY(-1px);
-        box-shadow: 0 0 0 1px var(--ring-color), 0 3px 10px rgba(0, 0, 0, 0.25);
-        outline: none;
-      }
-      .tile-top {
-        display: flex;
-        gap: 6px;
         align-items: center;
-        min-width: 0;
+        gap: 4px;
       }
-      .chip {
-        flex: none;
-        width: 24px;
-        height: 24px;
-        border-radius: 7px;
+      .node.idle {
+        opacity: 0.6;
+      }
+      .circle {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: color-mix(in srgb, var(--ring-color) 16%, transparent);
+        width: clamp(56px, 15cqw, 76px);
+        height: clamp(56px, 15cqw, 76px);
+        border-radius: 50%;
+        background: var(--ha-card-background, var(--card-background-color, #fff));
+        box-shadow: 0 0 0 2px var(--ring-color), 0 2px 6px rgba(0, 0, 0, 0.25);
+        transition: box-shadow 0.2s;
       }
-      .tile.idle .chip {
-        background: color-mix(in srgb, var(--disabled-text-color) 16%, transparent);
+      .node.hero .circle {
+        width: clamp(62px, 17cqw, 84px);
+        height: clamp(62px, 17cqw, 84px);
       }
-      .chip ha-icon {
-        --mdc-icon-size: 16px;
+      .node.ind .circle {
+        width: clamp(48px, 12cqw, 66px);
+        height: clamp(48px, 12cqw, 66px);
+      }
+      .node.active .circle {
+        box-shadow: 0 0 0 2px var(--ring-color), 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 14px color-mix(in srgb, var(--ring-color) 55%, transparent);
+      }
+      .node[role="button"] {
+        cursor: pointer;
+      }
+      .node[role="button"]:hover .circle,
+      .node[role="button"]:focus-visible .circle {
+        box-shadow: 0 0 0 3px var(--ring-color), 0 3px 10px rgba(0, 0, 0, 0.3);
+      }
+      .node[role="button"]:focus-visible {
+        outline: none;
+      }
+      .circle ha-icon {
+        --mdc-icon-size: clamp(16px, 3.6cqw, 22px);
         color: var(--ring-color);
       }
-      .name {
-        font-size: 11px;
-        color: var(--secondary-text-color);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-width: 0;
-      }
-      .tile-bottom {
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
+      .node.ind .circle ha-icon {
+        --mdc-icon-size: clamp(13px, 3cqw, 18px);
       }
       .value {
-        font-size: 14px;
-        font-weight: 650;
+        font-size: clamp(12px, 3.1cqw, 16px);
+        font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: var(--primary-text-color);
+        background: var(--ha-card-background, var(--card-background-color, #fff));
+        padding: 0 4px;
+        border-radius: 4px;
       }
-      .tile.idle .value {
-        color: var(--secondary-text-color);
+      .node.ind .value {
+        font-size: clamp(10px, 2.6cqw, 13px);
       }
       .state {
         font-size: 10px;
         color: var(--secondary-text-color);
       }
-      .flow {
-        height: 2px;
-        border-radius: 2px;
-        margin-top: 1px;
-        background: repeating-linear-gradient(90deg, var(--ring-color) 0 4px, transparent 4px 10px);
-        opacity: 0.14;
+      .label {
+        font-size: clamp(10px, 2.4cqw, 12px);
+        max-width: 110px;
+        text-align: center;
+        color: var(--secondary-text-color);
+        background: var(--ha-card-background, var(--card-background-color, #fff));
+        padding: 0 4px;
+        border-radius: 4px;
       }
-      .flow.active {
-        opacity: 0.7;
-        animation: tileflow 1.1s linear infinite;
+      @container (max-width: 400px) {
+        .circle {
+          width: 44px;
+          height: 44px;
+        }
+        .node.hero .circle {
+          width: 50px;
+          height: 50px;
+        }
+        .node.ind .circle {
+          width: 40px;
+          height: 40px;
+        }
+        .circle ha-icon {
+          --mdc-icon-size: 13px;
+        }
+        .node.ind .circle ha-icon {
+          --mdc-icon-size: 11px;
+        }
+        .value {
+          font-size: 10px;
+        }
+        .node.ind .value {
+          font-size: 9px;
+        }
+        .label {
+          font-size: 9px;
+        }
       }
-      .flow.reverse {
-        animation-direction: reverse;
-      }
-      @keyframes tileflow {
-        to {
-          background-position: 10px 0;
+      @media (max-width: 480px) {
+        .circle {
+          width: 44px;
+          height: 44px;
+        }
+        .node.hero .circle {
+          width: 50px;
+          height: 50px;
+        }
+        .node.ind .circle {
+          width: 40px;
+          height: 40px;
+        }
+        .circle ha-icon {
+          --mdc-icon-size: 13px;
+        }
+        .node.ind .circle ha-icon {
+          --mdc-icon-size: 11px;
+        }
+        .value {
+          font-size: 10px;
+        }
+        .node.ind .value {
+          font-size: 9px;
+        }
+        .label {
+          font-size: 9px;
         }
       }
     `;
@@ -377,64 +350,54 @@ class DualBatteryFlowCard extends LitElement {
     };
   }
 
-  _tileActivated = (ev) => {
-    const tile = ev.currentTarget;
-    const entityId = tile && tile.getAttribute("data-entity");
+  _nodeActivated = (ev) => {
+    const node = ev.currentTarget;
+    const entityId = node && node.getAttribute("data-entity");
     if (entityId) {
       this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
     }
   };
 
-  _tileKeydown = (ev) => {
+  _nodeKeydown = (ev) => {
     if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") {
       ev.preventDefault();
-      this._tileActivated(ev);
+      this._nodeActivated(ev);
     }
   };
+  _line(pos, active, reverse, watts, color) {
+    return {
+      d: pos ? "M " + pos[0] + "," + pos[1] + " L " + HOME[0] + "," + HOME[1] : "",
+      cls: "flow" + (active ? " active" : "") + (reverse ? " reverse" : ""),
+      style: "stroke:" + color + ";stroke-width:" + Math.min(6, Math.max(1.5, 1.5 + (Math.abs(watts) / 1000) * 0.9)).toFixed(2) + "px",
+    };
+  }
 
-  _tile(entity, icon, name, valueText, stateText, color, active, reverse) {
-    const cls = "tile" + (active ? "" : " idle");
+  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText, extraStyle) {
+    const klass = "node" + (cls ? " " + cls : "") + (active ? " active" : " idle");
+    const style = "left:" + pos[0] + "%;top:" + pos[1] + "%;--ring-color:" + color + (extraStyle ? ";" + extraStyle : "") + ";";
     const inner = html`
-      <div class="tile-top">
-        <div class="chip"><ha-icon icon="${icon}"></ha-icon></div>
-        <div class="name">${name}</div>
-      </div>
-      <div class="tile-bottom">
-        <div class="value">${valueText}</div>
-        ${stateText ? html`<div class="state">${stateText}</div>` : ""}
-      </div>
-      <div class="flow ${active ? "active" : ""} ${reverse ? "reverse" : ""}"></div>
+      <div class="circle"><ha-icon icon="${icon}"></ha-icon></div>
+      <div class="value">${valueText}</div>
+      ${stateText ? html`<div class="state">${stateText}</div>` : ""}
+      <div class="label">${labelText}</div>
     `;
     if (entity) {
       return html`
         <div
-          class="${cls}"
-          style="--ring-color:${color}"
+          class="${klass}"
+          style="${style}"
+          data-entity="${entity}"
           role="button"
           tabindex="0"
-          title="${name} — ${entity}"
-          data-entity="${entity}"
-          @click=${this._tileActivated}
-          @keydown=${this._tileKeydown}
+          title="${labelText} — ${entity}"
+          @click=${this._nodeActivated}
+          @keydown=${this._nodeKeydown}
         >
           ${inner}
         </div>
       `;
     }
-    return html`<div class="${cls}" style="--ring-color:${color}">${inner}</div>`;
-  }
-
-  _group(name, accent, active, cols, reverse, tiles) {
-    return html`
-      <div class="group">
-        <div class="group-head" style="--accent:${accent}">
-          <span class="dot ${active ? "pulse" : ""}"></span>
-          <span class="group-name">${name}</span>
-          <span class="bus ${active ? "active" : ""} ${reverse ? "reverse" : ""}"></span>
-        </div>
-        <div class="tiles cols-${cols}">${tiles}</div>
-      </div>
-    `;
+    return html`<div class="${klass}" style="${style}">${inner}</div>`;
   }
 
   render() {
@@ -448,10 +411,11 @@ class DualBatteryFlowCard extends LitElement {
     const homeActive = values.home > threshold;
 
     const members = values.car ? [...values.batteries, values.car] : values.batteries;
-    const totalCharge = members.reduce((sum, b) => sum + b.charge, 0);
-    const totalDischarge = members.reduce((sum, b) => sum + b.discharge, 0);
-    const chargingDominant = totalCharge > totalDischarge;
-    const batteriesActive = members.some((b) => b.charge > threshold || b.discharge > threshold);
+    const batteryPos = [[34, 82], [52, 82], [70, 82]];
+    const bat0 = members[0] || null;
+    const bat1 = members[1] || null;
+    const car = members[2] || null;
+    const batActive = (battery) => !!battery && (battery.charge > threshold || battery.discharge > threshold);
 
     let individuals = values.individuals.filter((item) => item.threshold == null || item.value > item.threshold);
     const individualCount = config.individual_count != null ? Number(config.individual_count) : null;
@@ -459,64 +423,69 @@ class DualBatteryFlowCard extends LitElement {
       individuals = [...individuals].sort((a, b) => b.value - a.value).slice(0, individualCount);
     }
     individuals = individuals.slice(0, 4);
-    const devicesActive = individuals.some((item) => item.value > threshold);
+    const indPos = [[87, 18], [87, 40], [87, 62], [87, 84]];
 
-    const inputTiles = [];
+    const lineSolar = this._line(config.solar ? [14, 20] : null, solarActive, false, values.solar, solarActive ? COLORS.solar : COLORS.idle);
+    const lineGrid = this._line(config.grid ? [14, 60] : null, gridActive, !gridImport, values.gridNet, gridColor);
+    const lineBat0 = this._line(bat0 ? batteryPos[0] : null, batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), this._batteryColor(bat0));
+    const lineBat1 = this._line(bat1 ? batteryPos[1] : null, batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), this._batteryColor(bat1));
+    const lineCar = this._line(car ? batteryPos[2] : null, batActive(car), !!car && car.charge > car.discharge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), this._batteryColor(car));
+    const lineInd = indPos.map((pos, i) => {
+      const item = individuals[i];
+      if (!item) {
+        return this._line(null, false, true, 0, COLORS.idle);
+      }
+      return this._line(pos, item.value > threshold, true, item.value, item.value > threshold ? COLORS.individual : COLORS.idle);
+    });
+
+    const nodes = [];
     if (config.solar) {
-      inputTiles.push(this._tile(config.solar, "mdi:weather-sunny", "Solar", this._fmt(values.solar), "", solarActive ? COLORS.solar : COLORS.idle, solarActive, false));
+      nodes.push(this._node(config.solar, [14, 20], "", solarActive ? COLORS.solar : COLORS.idle, solarActive, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar"));
     }
     if (config.grid) {
-      const gridEntity = config.grid.consumption || config.grid.production;
-      inputTiles.push(
-        this._tile(
-          gridEntity,
-          "mdi:transmission-tower",
-          "Grid",
-          this._fmt(Math.abs(values.gridNet)),
-          gridActive ? (gridImport ? "import" : "export") : "idle",
-          gridColor,
-          gridActive,
-          !gridImport
-        )
-      );
+      nodes.push(this._node(config.grid.consumption || config.grid.production, [14, 60], "", gridColor, gridActive, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid"));
     }
-
-    const batteryTiles = members.map((battery) => {
+    nodes.push(this._node(config.home, [48, 40], "hero", COLORS.home, homeActive, "mdi:home", this._fmt(values.home), "", "Home"));
+    members.forEach((battery, i) => {
       const isCar = battery === values.car;
       const icon = isCar ? battery.config.icon || "mdi:car-electric" : this._batteryIcon(battery);
       const name = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
-      const power = Math.max(battery.charge, battery.discharge);
-      const stateText = battery.soc == null ? "" : Math.round(battery.soc) + "%";
-      const active = battery.charge > threshold || battery.discharge > threshold;
-      return this._tile(battery.config.entity, icon, name, this._fmt(power), stateText, this._batteryColor(battery), active, battery.charge > battery.discharge);
+      const color = this._batteryColor(battery);
+      nodes.push(this._node(battery.config.entity, batteryPos[i], "", color, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name));
     });
-
-    const deviceTiles = individuals.map((item) =>
-      this._tile(item.entity, item.icon, item.name, this._fmt(item.value), "", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, false)
-    );
+    individuals.forEach((item, i) => {
+      nodes.push(this._node(item.entity, indPos[i], "ind", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, "z-index:" + (5 - i)));
+    });
 
     return html`
       <ha-card>
-        <div class="wrap">
-          ${config.title || config.home
-            ? html`
-                <div class="head">
-                  ${config.title ? html`<div class="title">${config.title}</div>` : ""}
-                  ${config.home
-                    ? html`
-                        <div class="home-chip" style="--home-color:${COLORS.home}; --home-glow:${homeActive ? "0 0 10px " + COLORS.home + "55" : "0 0 transparent"}">
-                          <ha-icon icon="mdi:home"></ha-icon>
-                          <span class="home-value">${this._fmt(values.home)}</span>
-                          <span class="home-label">Home</span>
-                        </div>
-                      `
-                    : ""}
-                </div>
-              `
-            : ""}
-          ${inputTiles.length ? this._group("Inputs", COLORS.solar, solarActive || gridActive, inputTiles.length, false, inputTiles) : ""}
-          ${batteryTiles.length ? this._group("Batteries", chargingDominant ? COLORS.charge : COLORS.discharge, batteriesActive, batteryTiles.length, chargingDominant, batteryTiles) : ""}
-          ${deviceTiles.length ? this._group("Devices", COLORS.individual, devicesActive, Math.min(4, deviceTiles.length), false, deviceTiles) : ""}
+        ${config.title ? html`<div class="title">${config.title}</div>` : ""}
+        <div class="container">
+          <!-- every path is static in this template (nested html templates parse SVG paths as HTML elements) -->
+          <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path class="track" d="${lineSolar.d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineSolar.cls}" data-line="solar" d="${lineSolar.d}" style="${lineSolar.style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineGrid.d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineGrid.cls}" data-line="grid" d="${lineGrid.d}" style="${lineGrid.style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineBat0.d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineBat0.cls}" data-line="bat0" d="${lineBat0.d}" style="${lineBat0.style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineBat1.d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineBat1.cls}" data-line="bat1" d="${lineBat1.d}" style="${lineBat1.style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineCar.d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineCar.cls}" data-line="car" d="${lineCar.d}" style="${lineCar.style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineInd[0].d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineInd[0].cls}" data-line="ind0" d="${lineInd[0].d}" style="${lineInd[0].style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineInd[1].d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineInd[1].cls}" data-line="ind1" d="${lineInd[1].d}" style="${lineInd[1].style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineInd[2].d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineInd[2].cls}" data-line="ind2" d="${lineInd[2].d}" style="${lineInd[2].style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineInd[3].d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineInd[3].cls}" data-line="ind3" d="${lineInd[3].d}" style="${lineInd[3].style}" pathLength="100" vector-effect="non-scaling-stroke" />
+          </svg>
+          <span class="group-tag" style="left:2%;top:2%">Inputs</span>
+          <span class="group-tag" style="left:2%;bottom:1%">Batteries</span>
+          <span class="group-tag" style="right:2%;top:2%">Devices</span>
+          ${nodes}
         </div>
       </ha-card>
     `;
