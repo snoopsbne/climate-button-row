@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) on the right; every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow.",
+  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) in a 2x2 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow.",
   preview: false,
 });
 
@@ -28,18 +28,28 @@ const COLORS = {
 const HOME = [50, 40];
 // Layout (percent coords, centre-anchored nodes): three columns —
 // inputs left (x=15), batteries middle (x=50, Home hub between house and garage),
-// devices right (x=85, ranked top-down). The house battery bubble is larger than
-// the garage/car, so the middle column is spaced wider than before.
+// devices right in a 2x2 grid (biggest consumers on the TOP row: rank1 upper-left,
+// rank2 upper-right, rank3 lower-left, rank4 lower-right). The house battery bubble
+// is larger than the garage/car, so the middle column is spaced wider than before.
 const SOLAR_POS = [15, 25];
 const GRID_POS = [15, 75];
 // Slots: house / garage / car. Without a car the car slot is simply unused
 // (2-member fallback: house + garage; 1-member: house only).
-const BATTERY_POS = [[50, 13], [50, 65], [50, 88]];
-const IND_POS = [[85, 16], [85, 40], [85, 64], [85, 87]];
+const BATTERY_POS = [[50, 14], [50, 64], [50, 88]];
+const IND_POS = [[76, 30], [91, 30], [76, 72], [91, 72]];
 // Car flow bows into the gap between the left and middle columns so it doesn't
 // daisy-chain straight down through the garage bubble. Starts at HOME, ends at
 // the car; control points at x=36%, y=50%/75% (built in pixels in render()).
 const CAR_CTRL = [[36, 50], [36, 75]];
+// The right device column is two columns wide, so rank2/rank4 (the right-hand
+// cells) get gentle arcs that bow over/under the rank1/rank3 bubbles instead of
+// daisy-chaining straight through them. Home->rank1 (IND[0]) and Home->rank3
+// (IND[2]) stay straight. Control points are percent coords built in pixels in
+// render(), so the chevrons reuse the exact same d.
+const IND_CURVE_CTRL = {
+  1: [[64, 14], [80, 14]], // HOME -> rank2 (top-right cell)
+  3: [[64, 86], [80, 86]], // HOME -> rank4 (bottom-right cell)
+};
 
 class DualBatteryFlowCard extends LitElement {
   static get properties() {
@@ -48,7 +58,8 @@ class DualBatteryFlowCard extends LitElement {
       config: Object,
       // Pixel size of the .container, kept in sync by a ResizeObserver so the
       // SVG viewBox and the CSS motion paths share one pixel coordinate space.
-      // Defaults match the jsdom harness (no ResizeObserver there).
+      // Defaults match the jsdom harness (no ResizeObserver there): the
+      // container is aspect 100/76 at 537px wide -> 408px tall.
       _w: Number,
       _h: Number,
     };
@@ -57,7 +68,7 @@ class DualBatteryFlowCard extends LitElement {
   constructor() {
     super();
     this._w = 537;
-    this._h = 419;
+    this._h = 408;
     this._ro = null;
   }
 
@@ -114,9 +125,9 @@ class DualBatteryFlowCard extends LitElement {
       .container {
         position: relative;
         width: 100%;
-        aspect-ratio: 100 / 82;
-        min-height: 280px;
-        max-height: 460px;
+        aspect-ratio: 100 / 76;
+        min-height: 270px;
+        max-height: 440px;
         container-type: inline-size;
       }
       svg.lines {
@@ -262,11 +273,14 @@ class DualBatteryFlowCard extends LitElement {
         border-radius: 4px;
       }
       .node.ind .label {
-        max-width: 90px;
+        max-width: 76px;
       }
       @container (max-width: 400px) {
         .label {
           font-size: 9px;
+        }
+        .node.ind .label {
+          max-width: 64px;
         }
       }
       @media (max-width: 480px) {
@@ -415,25 +429,31 @@ class DualBatteryFlowCard extends LitElement {
     return { d: "M " + a[0] + "," + a[1] + " L " + b[0] + "," + b[1], len: Math.hypot(b[0] - a[0], b[1] - a[1]) };
   }
 
-  _carCurve() {
-    const home = this._pt(HOME);
-    const end = this._pt(BATTERY_POS[2]);
-    const c1 = this._pt(CAR_CTRL[0]);
-    const c2 = this._pt(CAR_CTRL[1]);
+  // Generic cubic path from a percent start through two percent control points
+  // to a percent end (used by the car bypass and the curved device feeds).
+  _curve(start, c1pos, c2pos, end) {
+    const a = this._pt(start);
+    const c1 = this._pt(c1pos);
+    const c2 = this._pt(c2pos);
+    const b = this._pt(end);
     // cubic length by sampling (getTotalLength is unavailable pre-render/jsdom)
     let len = 0;
-    let prev = home;
+    let prev = a;
     for (let i = 1; i <= 32; i++) {
       const t = i / 32;
       const u = 1 - t;
       const p = [
-        u * u * u * home[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * end[0],
-        u * u * u * home[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * end[1],
+        u * u * u * a[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * b[0],
+        u * u * u * a[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * b[1],
       ];
       len += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
       prev = p;
     }
-    return { d: "M " + home[0] + "," + home[1] + " C " + c1[0] + "," + c1[1] + " " + c2[0] + "," + c2[1] + " " + end[0] + "," + end[1], len };
+    return { d: "M " + a[0] + "," + a[1] + " C " + c1[0] + "," + c1[1] + " " + c2[0] + "," + c2[1] + " " + b[0] + "," + b[1], len };
+  }
+
+  _carCurve() {
+    return this._curve(HOME, CAR_CTRL[0], CAR_CTRL[1], BATTERY_POS[2]);
   }
 
   _line(geom, active, reverse, watts, color) {
@@ -554,7 +574,9 @@ class DualBatteryFlowCard extends LitElement {
       if (!item) {
         return this._line({ d: "", len: 0 }, false, true, 0, COLORS.idle);
       }
-      return this._line(this._straight(pos), item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
+      const ctrl = IND_CURVE_CTRL[i];
+      const geom = ctrl ? this._curve(HOME, ctrl[0], ctrl[1], pos) : this._straight(pos);
+      return this._line(geom, item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
     });
 
     const nodes = [];
