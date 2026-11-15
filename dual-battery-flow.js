@@ -10,14 +10,18 @@ const LitElement = customElements.get("ha-panel-lovelace") ? Object.getPrototype
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
+// Node identity is class-based: the ring colour tells you what the node IS
+// (grid red, solar yellow, batteries/car blue, devices purple, home slate);
+// idle nodes just dim via .node.idle. Flow lines are semantic: green = good,
+// red = bad (grid import; device feeds while the home is importing).
 const COLORS = {
-  solar: "#f6a623",
-  import: "#ef6c00",
-  export: "#43a047",
-  charge: "#29b6f6",
-  discharge: "#43a047",
+  solar: "#fdd835",
+  grid: "#e53935",
+  battery: "#2196f3",
   home: "#546e7a",
-  individual: "#8e24aa",
+  individual: "#ab47bc",
+  good: "#43a047",
+  bad: "#e53935",
   idle: "var(--disabled-text-color, #9e9e9e)",
 };
 
@@ -259,19 +263,6 @@ class DualBatteryFlowCard extends LitElement {
     return "mdi:battery-" + soc;
   }
 
-  _batteryColor(battery) {
-    if (!battery) {
-      return COLORS.idle;
-    }
-    if (battery.charge > 10 && battery.charge >= battery.discharge) {
-      return COLORS.charge;
-    }
-    if (battery.discharge > 10) {
-      return COLORS.discharge;
-    }
-    return COLORS.idle;
-  }
-
   _values() {
     const config = this.config;
     const gridImport = this._num(config.grid && config.grid.consumption);
@@ -359,7 +350,11 @@ class DualBatteryFlowCard extends LitElement {
     const solarActive = values.solar > threshold;
     const gridActive = Math.abs(values.gridNet) > threshold;
     const gridImport = values.gridNet >= 0;
-    const gridColor = gridActive ? (gridImport ? COLORS.import : COLORS.export) : COLORS.idle;
+    const gridLine = gridActive ? (gridImport ? COLORS.bad : COLORS.good) : COLORS.idle;
+    // importing right now (gridNet > threshold) makes the device feeds "bad";
+    // while the home is self-covered they are "good".
+    const importing = values.gridNet > threshold;
+    const deviceLine = importing ? COLORS.bad : COLORS.good;
     const homeActive = values.home > threshold;
 
     const members = values.car ? [...values.batteries, values.car] : values.batteries;
@@ -380,42 +375,44 @@ class DualBatteryFlowCard extends LitElement {
     // clamped between the idle min and max; watts at/below the activity threshold sit at min.
     const batWatts = (battery) => (battery ? Math.max(battery.charge, battery.discharge) : 0);
     const maxW = Math.max(1, values.solar, Math.abs(values.gridNet), values.home, ...members.map(batWatts), ...individuals.map((item) => Math.abs(item.value)));
-    const dia = (watts) => {
+    const ratioOf = (watts) => {
       const w = Math.abs(watts);
-      const ratio = w > threshold ? w / maxW : 0;
-      return "clamp(34px, " + (8.2 + 8.2 * Math.sqrt(ratio)).toFixed(2) + "cqw, 92px)";
+      return w > threshold ? w / maxW : 0;
     };
+    const dia = (watts) => "clamp(34px, " + (8.2 + 8.2 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 92px)";
+    // batteries (house, garage, car) get a bigger floor so the left column doesn't waste space.
+    const diaBat = (watts) => "clamp(48px, " + (12 + 4.4 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 92px)";
+    const batLine = (battery) => (batActive(battery) ? COLORS.good : COLORS.idle);
 
-    const lineSolar = this._line(config.solar ? SOLAR_POS : null, solarActive, false, values.solar, solarActive ? COLORS.solar : COLORS.idle);
-    const lineGrid = this._line(config.grid ? GRID_POS : null, gridActive, !gridImport, values.gridNet, gridColor);
-    const lineBat0 = this._line(bat0 ? BATTERY_POS[0] : null, batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), this._batteryColor(bat0));
-    const lineBat1 = this._line(bat1 ? BATTERY_POS[1] : null, batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), this._batteryColor(bat1));
-    const lineCar = this._line(car ? BATTERY_POS[2] : null, batActive(car), !!car && car.charge > car.discharge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), this._batteryColor(car));
+    const lineSolar = this._line(config.solar ? SOLAR_POS : null, solarActive, false, values.solar, solarActive ? COLORS.good : COLORS.idle);
+    const lineGrid = this._line(config.grid ? GRID_POS : null, gridActive, !gridImport, values.gridNet, gridLine);
+    const lineBat0 = this._line(bat0 ? BATTERY_POS[0] : null, batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), batLine(bat0));
+    const lineBat1 = this._line(bat1 ? BATTERY_POS[1] : null, batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), batLine(bat1));
+    const lineCar = this._line(car ? BATTERY_POS[2] : null, batActive(car), !!car && car.charge > car.discharge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), batLine(car));
     const lineInd = IND_POS.map((pos, i) => {
       const item = individuals[i];
       if (!item) {
         return this._line(null, false, true, 0, COLORS.idle);
       }
-      return this._line(pos, item.value > threshold, true, item.value, item.value > threshold ? COLORS.individual : COLORS.idle);
+      return this._line(pos, item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
     });
 
     const nodes = [];
     if (config.solar) {
-      nodes.push(this._node(config.solar, SOLAR_POS, "", solarActive ? COLORS.solar : COLORS.idle, solarActive, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", dia(values.solar)));
+      nodes.push(this._node(config.solar, SOLAR_POS, "", COLORS.solar, solarActive, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", dia(values.solar)));
     }
     if (config.grid) {
-      nodes.push(this._node(config.grid.consumption || config.grid.production, GRID_POS, "", gridColor, gridActive, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", dia(Math.abs(values.gridNet))));
+      nodes.push(this._node(config.grid.consumption || config.grid.production, GRID_POS, "", COLORS.grid, gridActive, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", dia(Math.abs(values.gridNet))));
     }
     nodes.push(this._node(config.home, HOME, "hero", COLORS.home, homeActive, "mdi:home", this._fmt(values.home), "", "Home", dia(values.home)));
     members.forEach((battery, i) => {
       const isCar = battery === values.car;
       const icon = isCar ? battery.config.icon || "mdi:car-electric" : this._batteryIcon(battery);
       const name = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
-      const color = this._batteryColor(battery);
-      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", color, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, dia(batWatts(battery))));
+      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", COLORS.battery, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, diaBat(batWatts(battery))));
     });
     individuals.forEach((item, i) => {
-      nodes.push(this._node(item.entity, IND_POS[i], "ind", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, dia(item.value)));
+      nodes.push(this._node(item.entity, IND_POS[i], "ind", COLORS.individual, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, dia(item.value)));
     });
 
     return html`
