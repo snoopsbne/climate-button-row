@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-6) in a 2x3 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow; the house and garage bubbles draw a 4-bar SoC battery glyph whose frontier bar fills in a loop while charging.",
+  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-6) in a 2x3 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow; the house and garage bubbles draw a vertical 4-bar SoC battery glyph (25% per bar, bottom bar first) whose frontier bar fills in a loop bottom-to-top while charging; the glyph is green charging, red discharging, blue idle (the bubble ring stays battery blue).",
   preview: false,
 });
 
@@ -259,35 +259,48 @@ class DualBatteryFlowCard extends LitElement {
         color: var(--ring-color);
       }
       /* SoC battery glyph (house + garage nodes replace the mdi battery icon):
-         an outlined body with four quartile bars + a terminal nub, built from
-         divs so the frontier bar can animate. Bar colour follows the node ring
-         colour. Static: bars below round(soc/25) are .lit, the rest .dim.
-         Charging: bars below floor(soc/25) .lit, the frontier bar .fill (it
-         grows from the bottom, loops), the rest .dim; at 100% (or unknown SoC
-         while charging) all bars .lit + .pulse trickle shimmer. */
+         a VERTICAL battery (the old horizontal glyph rotated 90 deg CCW) —
+         terminal nub on TOP, outlined body below it holding four HORIZONTAL
+         quartile bars stacked so bar 1 (0-25%) sits at the BOTTOM and bar 4
+         (75-100%) at the TOP (.batt-body is flex column-reverse, DOM order
+         stays b1..b4). Built from divs so the frontier bar can animate. The
+         glyph carries an icon-level state colour set inline on .batt — green
+         charging, red discharging, blue idle — while the bubble ring stays
+         battery blue. Static: bars below round(soc/25) are .lit, the rest
+         .dim. Charging: bars below floor(soc/25) .lit, the frontier bar .fill
+         (it stretches left->right within its row, looping; the sequence of
+         rows reads bottom->top), the rest .dim; at 100% (or unknown SoC while
+         charging) all bars .lit + .pulse trickle shimmer. */
       .batt {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        height: clamp(10px, calc(var(--d) * 0.26), 20px);
-        color: var(--ring-color);
+        gap: 1px;
+      }
+      .batt-tip {
+        width: 40%;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+        background: currentColor;
       }
       .batt-body {
         display: flex;
-        align-items: stretch;
+        flex-direction: column-reverse;
         gap: 1px;
-        height: 100%;
+        width: clamp(10px, calc(var(--d) * 0.20), 16px);
+        height: clamp(14px, calc(var(--d) * 0.30), 26px);
         border: 1.5px solid currentColor;
         border-radius: 3px;
         padding: 1.5px;
         box-sizing: border-box;
       }
       .batt-bar {
-        width: clamp(2px, calc(var(--d) * 0.055), 3.5px);
-        height: 100%;
+        width: 100%;
+        height: clamp(2px, calc(var(--d) * 0.05), 3.5px);
         border-radius: 1px;
         background: currentColor;
         opacity: 0.18;
-        transform-origin: bottom center;
+        transform-origin: left center;
       }
       .batt-bar.lit {
         opacity: 1;
@@ -301,19 +314,19 @@ class DualBatteryFlowCard extends LitElement {
       }
       @keyframes fillbar {
         0% {
-          transform: scaleY(0.15);
+          transform: scaleX(0.15);
           opacity: 0.4;
         }
         65% {
-          transform: scaleY(1);
+          transform: scaleX(1);
           opacity: 1;
         }
         85% {
-          transform: scaleY(1);
+          transform: scaleX(1);
           opacity: 1;
         }
         100% {
-          transform: scaleY(0.15);
+          transform: scaleX(0.15);
           opacity: 0.4;
         }
       }
@@ -329,13 +342,6 @@ class DualBatteryFlowCard extends LitElement {
         50% {
           opacity: 1;
         }
-      }
-      .batt-tip {
-        width: 2px;
-        height: 40%;
-        margin-left: 1px;
-        border-radius: 0 2px 2px 0;
-        background: currentColor;
       }
       .value {
         font-size: clamp(9px, calc(var(--d) * 0.17), 15px);
@@ -436,12 +442,15 @@ class DualBatteryFlowCard extends LitElement {
   }
 
   // Battery-glyph quartile model (consumed by _node's ${battery} branch):
-  // lit/dim/fill/pulse per bar, SoC-truthful.
+  // lit/dim/fill/pulse per bar (bar index 0 = bottom quartile — .batt-body is
+  // column-reverse so it renders at the BOTTOM), SoC-truthful, plus the glyph
+  // state colour: green while charging (charge > 10 && charge >= discharge),
+  // red while discharging (discharge > 10), battery blue when idle.
   // - not charging (idle or discharging): bars below round(soc/25) .lit, rest
   //   .dim; soc unknown -> all dim; soc >= 100 -> all lit (static).
   // - charging (charge > 10 && charge >= discharge), soc < 100: bars below
-  //   floor(soc/25) .lit, the frontier bar .fill (loops filling from bottom),
-  //   the rest .dim.
+  //   floor(soc/25) .lit, the frontier bar .fill (stretches left->right in its
+  //   row, so the charge animates bottom->top), the rest .dim.
   // - charging at 100% (or SoC unknown while charging): all bars .lit + .pulse.
   _batteryBars(battery) {
     if (!battery) {
@@ -464,6 +473,7 @@ class DualBatteryFlowCard extends LitElement {
     return {
       bars: cls.map((c) => "batt-bar " + c),
       tip: "batt-tip",
+      color: charging ? COLORS.good : battery.discharge > 10 ? COLORS.bad : COLORS.battery,
     };
   }
 
@@ -599,14 +609,14 @@ class DualBatteryFlowCard extends LitElement {
       <div class="circle">
         ${battery
           ? html`
-              <div class="batt">
+              <div class="batt" style="color:${battery.color}">
+                <div class="${battery.tip}"></div>
                 <div class="batt-body">
                   <div class="${battery.bars[0]}"></div>
                   <div class="${battery.bars[1]}"></div>
                   <div class="${battery.bars[2]}"></div>
                   <div class="${battery.bars[3]}"></div>
                 </div>
-                <div class="${battery.tip}"></div>
               </div>
             `
           : html`<ha-icon icon="${icon}"></ha-icon>`}
