@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram: Inputs (solar + grid) along the top, Batteries (house + garage + optional car) down the left and Devices on the right/bottom flow into the central Home hub; every bubble is sized by its share of the biggest power flow, with magnitude-weighted animated lines.",
+  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) on the right; every bubble is sized by its share of the biggest power flow, with magnitude-weighted animated lines.",
   preview: false,
 });
 
@@ -25,12 +25,17 @@ const COLORS = {
   idle: "var(--disabled-text-color, #9e9e9e)",
 };
 
-const HOME = [50, 50];
-// Layout (percent coords, centre-anchored nodes): inputs top, batteries left column, devices right column + bottom row.
-const SOLAR_POS = [32, 16];
-const GRID_POS = [68, 16];
-const BATTERY_POS = [[13, 30], [13, 58], [13, 86]];
-const IND_POS = [[87, 30], [87, 58], [45, 86], [70, 86]];
+const HOME = [50, 38];
+// Layout (percent coords, centre-anchored nodes): three columns —
+// inputs left (x=15), batteries middle (x=50, Home hub between house and garage),
+// devices right (x=85, ranked top-down).
+const SOLAR_POS = [15, 25];
+const GRID_POS = [15, 75];
+const BATTERY_POS = [[50, 12], [50, 63], [50, 87]];
+const IND_POS = [[85, 16], [85, 40], [85, 64], [85, 87]];
+// Car flow bows into the gap between the left and middle columns so it doesn't
+// daisy-chain straight down through the garage bubble. Starts at HOME, ends at the car.
+const CAR_CURVE = "M " + HOME[0] + "," + HOME[1] + " C 36,50 36,75 " + BATTERY_POS[2][0] + "," + BATTERY_POS[2][1];
 
 class DualBatteryFlowCard extends LitElement {
   static get properties() {
@@ -54,9 +59,9 @@ class DualBatteryFlowCard extends LitElement {
       .container {
         position: relative;
         width: 100%;
-        aspect-ratio: 100 / 74;
-        min-height: 270px;
-        max-height: 430px;
+        aspect-ratio: 100 / 78;
+        min-height: 280px;
+        max-height: 440px;
         container-type: inline-size;
       }
       svg.lines {
@@ -305,9 +310,13 @@ class DualBatteryFlowCard extends LitElement {
       this._nodeActivated(ev);
     }
   };
-  _line(pos, active, reverse, watts, color) {
+  _to(pos) {
+    return pos ? "M " + pos[0] + "," + pos[1] + " L " + HOME[0] + "," + HOME[1] : "";
+  }
+
+  _line(d, active, reverse, watts, color) {
     return {
-      d: pos ? "M " + pos[0] + "," + pos[1] + " L " + HOME[0] + "," + HOME[1] : "",
+      d,
       cls: "flow" + (active ? " active" : "") + (reverse ? " reverse" : ""),
       style: "stroke:" + color + ";stroke-width:" + Math.min(6, Math.max(1.5, 1.5 + (Math.abs(watts) / 1000) * 0.9)).toFixed(2) + "px",
     };
@@ -379,22 +388,24 @@ class DualBatteryFlowCard extends LitElement {
       const w = Math.abs(watts);
       return w > threshold ? w / maxW : 0;
     };
-    const dia = (watts) => "clamp(34px, " + (8.2 + 8.2 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 92px)";
-    // batteries (house, garage, car) get a bigger floor so the left column doesn't waste space.
-    const diaBat = (watts) => "clamp(48px, " + (12 + 4.4 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 92px)";
+    const dia = (watts) => "clamp(34px, " + (8.2 + 7.4 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 84px)";
+    // batteries (house, garage, car) get a bigger floor so the middle column doesn't waste space.
+    const diaBat = (watts) => "clamp(48px, " + (11.5 + 4.1 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 84px)";
     const batLine = (battery) => (batActive(battery) ? COLORS.good : COLORS.idle);
 
-    const lineSolar = this._line(config.solar ? SOLAR_POS : null, solarActive, false, values.solar, solarActive ? COLORS.good : COLORS.idle);
-    const lineGrid = this._line(config.grid ? GRID_POS : null, gridActive, !gridImport, values.gridNet, gridLine);
-    const lineBat0 = this._line(bat0 ? BATTERY_POS[0] : null, batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), batLine(bat0));
-    const lineBat1 = this._line(bat1 ? BATTERY_POS[1] : null, batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), batLine(bat1));
-    const lineCar = this._line(car ? BATTERY_POS[2] : null, batActive(car), !!car && car.charge > car.discharge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), batLine(car));
+    const lineSolar = this._line(this._to(config.solar ? SOLAR_POS : null), solarActive, false, values.solar, solarActive ? COLORS.good : COLORS.idle);
+    const lineGrid = this._line(this._to(config.grid ? GRID_POS : null), gridActive, !gridImport, values.gridNet, gridLine);
+    const lineBat0 = this._line(this._to(bat0 ? BATTERY_POS[0] : null), batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), batLine(bat0));
+    const lineBat1 = this._line(this._to(bat1 ? BATTERY_POS[1] : null), batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), batLine(bat1));
+    // the car bypass runs HOME -> car, so its reverse polarity is flipped vs the battery lines:
+    // charging runs forward along the curve, discharging reverses it.
+    const lineCar = this._line(car ? CAR_CURVE : "", batActive(car), !!car && car.discharge > car.charge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), batLine(car));
     const lineInd = IND_POS.map((pos, i) => {
       const item = individuals[i];
       if (!item) {
-        return this._line(null, false, true, 0, COLORS.idle);
+        return this._line("", false, true, 0, COLORS.idle);
       }
-      return this._line(pos, item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
+      return this._line(this._to(pos), item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
     });
 
     const nodes = [];
@@ -441,8 +452,8 @@ class DualBatteryFlowCard extends LitElement {
             <path class="${lineInd[3].cls}" data-line="ind3" d="${lineInd[3].d}" style="${lineInd[3].style}" pathLength="100" vector-effect="non-scaling-stroke" />
           </svg>
           <span class="group-tag" style="left:2%;top:2%">Inputs</span>
-          <span class="group-tag" style="left:2%;top:12%">Batteries</span>
-          <span class="group-tag" style="right:2%;top:2%">Devices</span>
+          <span class="group-tag" style="left:27%;top:2%">Batteries</span>
+          <span class="group-tag" style="right:2%;top:1%">Devices</span>
           ${nodes}
         </div>
       </ha-card>
