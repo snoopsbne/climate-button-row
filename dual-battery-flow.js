@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram: Inputs, Batteries (house + garage + optional car) and top Devices flow into the Home hub with magnitude-weighted animated lines.",
+  description: "Compact grouped flow diagram: Inputs (solar + grid) along the top, Batteries (house + garage + optional car) down the left and Devices on the right/bottom flow into the central Home hub; every bubble is sized by its share of the biggest power flow, with magnitude-weighted animated lines.",
   preview: false,
 });
 
@@ -21,7 +21,12 @@ const COLORS = {
   idle: "var(--disabled-text-color, #9e9e9e)",
 };
 
-const HOME = [48, 40];
+const HOME = [50, 50];
+// Layout (percent coords, centre-anchored nodes): inputs top, batteries left column, devices right column + bottom row.
+const SOLAR_POS = [32, 16];
+const GRID_POS = [68, 16];
+const BATTERY_POS = [[13, 30], [13, 58], [13, 86]];
+const IND_POS = [[87, 30], [87, 58], [45, 86], [70, 86]];
 
 class DualBatteryFlowCard extends LitElement {
   static get properties() {
@@ -45,9 +50,9 @@ class DualBatteryFlowCard extends LitElement {
       .container {
         position: relative;
         width: 100%;
-        aspect-ratio: 100 / 66;
-        min-height: 250px;
-        max-height: 400px;
+        aspect-ratio: 100 / 74;
+        min-height: 270px;
+        max-height: 430px;
         container-type: inline-size;
       }
       svg.lines {
@@ -111,20 +116,12 @@ class DualBatteryFlowCard extends LitElement {
         align-items: center;
         justify-content: center;
         gap: 1px;
-        width: clamp(56px, 15cqw, 76px);
-        height: clamp(56px, 15cqw, 76px);
+        width: var(--d);
+        height: var(--d);
         border-radius: 50%;
         background: var(--ha-card-background, var(--card-background-color, #fff));
         box-shadow: 0 0 0 2px var(--ring-color), 0 2px 6px rgba(0, 0, 0, 0.25);
         transition: box-shadow 0.2s;
-      }
-      .node.hero .circle {
-        width: clamp(62px, 17cqw, 84px);
-        height: clamp(62px, 17cqw, 84px);
-      }
-      .node.ind .circle {
-        width: clamp(46px, 11cqw, 62px);
-        height: clamp(46px, 11cqw, 62px);
       }
       .node.active .circle {
         box-shadow: 0 0 0 2px var(--ring-color), 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 14px color-mix(in srgb, var(--ring-color) 55%, transparent);
@@ -140,31 +137,22 @@ class DualBatteryFlowCard extends LitElement {
         outline: none;
       }
       .circle ha-icon {
-        --mdc-icon-size: clamp(16px, 3.6cqw, 22px);
+        --mdc-icon-size: clamp(11px, calc(var(--d) * 0.22), 20px);
         color: var(--ring-color);
       }
-      .node.ind .circle ha-icon {
-        --mdc-icon-size: clamp(13px, 3cqw, 18px);
-      }
       .value {
-        font-size: clamp(11px, 2.9cqw, 15px);
+        font-size: clamp(9px, calc(var(--d) * 0.17), 15px);
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: var(--primary-text-color);
         white-space: nowrap;
       }
-      .node.hero .value {
-        font-size: clamp(12px, 3.2cqw, 17px);
-      }
-      .node.ind .value {
-        font-size: clamp(9px, 2.4cqw, 12px);
-      }
       .state {
-        font-size: 9px;
+        font-size: clamp(8px, calc(var(--d) * 0.12), 10px);
         color: var(--secondary-text-color);
       }
       .label {
-        font-size: clamp(10px, 2.4cqw, 12px);
+        font-size: clamp(10px, 2cqw, 11px);
         max-width: 110px;
         white-space: nowrap;
         overflow: hidden;
@@ -179,71 +167,11 @@ class DualBatteryFlowCard extends LitElement {
         max-width: 90px;
       }
       @container (max-width: 400px) {
-        .circle {
-          width: 44px;
-          height: 44px;
-        }
-        .node.hero .circle {
-          width: 50px;
-          height: 50px;
-        }
-        .node.ind .circle {
-          width: 38px;
-          height: 38px;
-        }
-        .circle ha-icon {
-          --mdc-icon-size: 13px;
-        }
-        .node.ind .circle ha-icon {
-          --mdc-icon-size: 11px;
-        }
-        .value {
-          font-size: 10px;
-        }
-        .node.ind .value {
-          font-size: 9px;
-        }
-        .node.hero .value {
-          font-size: 11px;
-        }
-        .state {
-          font-size: 8px;
-        }
         .label {
           font-size: 9px;
         }
       }
       @media (max-width: 480px) {
-        .circle {
-          width: 44px;
-          height: 44px;
-        }
-        .node.hero .circle {
-          width: 50px;
-          height: 50px;
-        }
-        .node.ind .circle {
-          width: 38px;
-          height: 38px;
-        }
-        .circle ha-icon {
-          --mdc-icon-size: 13px;
-        }
-        .node.ind .circle ha-icon {
-          --mdc-icon-size: 11px;
-        }
-        .value {
-          font-size: 10px;
-        }
-        .node.ind .value {
-          font-size: 9px;
-        }
-        .node.hero .value {
-          font-size: 11px;
-        }
-        .state {
-          font-size: 8px;
-        }
         .label {
           font-size: 9px;
         }
@@ -259,7 +187,7 @@ class DualBatteryFlowCard extends LitElement {
   }
 
   getCardSize() {
-    return 3;
+    return 4;
   }
 
   _state(entityId) {
@@ -394,9 +322,9 @@ class DualBatteryFlowCard extends LitElement {
     };
   }
 
-  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText) {
+  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText, d) {
     const klass = "node" + (cls ? " " + cls : "") + (active ? " active" : " idle");
-    const style = "left:" + pos[0] + "%;top:" + pos[1] + "%;--ring-color:" + color + ";";
+    const style = "left:" + pos[0] + "%;top:" + pos[1] + "%;--ring-color:" + color + ";--d:" + d + ";";
     const inner = html`
       <div class="circle">
         <ha-icon icon="${icon}"></ha-icon>
@@ -435,7 +363,6 @@ class DualBatteryFlowCard extends LitElement {
     const homeActive = values.home > threshold;
 
     const members = values.car ? [...values.batteries, values.car] : values.batteries;
-    const batteryPos = [[34, 78], [52, 78], [70, 78]];
     const bat0 = members[0] || null;
     const bat1 = members[1] || null;
     const car = members[2] || null;
@@ -447,14 +374,24 @@ class DualBatteryFlowCard extends LitElement {
       individuals = [...individuals].sort((a, b) => b.value - a.value).slice(0, individualCount);
     }
     individuals = individuals.slice(0, 4);
-    const indPos = [[87, 16], [87, 38], [87, 60], [87, 82]];
 
-    const lineSolar = this._line(config.solar ? [14, 20] : null, solarActive, false, values.solar, solarActive ? COLORS.solar : COLORS.idle);
-    const lineGrid = this._line(config.grid ? [14, 60] : null, gridActive, !gridImport, values.gridNet, gridColor);
-    const lineBat0 = this._line(bat0 ? batteryPos[0] : null, batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), this._batteryColor(bat0));
-    const lineBat1 = this._line(bat1 ? batteryPos[1] : null, batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), this._batteryColor(bat1));
-    const lineCar = this._line(car ? batteryPos[2] : null, batActive(car), !!car && car.charge > car.discharge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), this._batteryColor(car));
-    const lineInd = indPos.map((pos, i) => {
+    // usage-scaled bubbles: the biggest producer/consumer gets the largest bubble;
+    // diameters scale with the sqrt of the power ratio (area proportional to watts),
+    // clamped between the idle min and max; watts at/below the activity threshold sit at min.
+    const batWatts = (battery) => (battery ? Math.max(battery.charge, battery.discharge) : 0);
+    const maxW = Math.max(1, values.solar, Math.abs(values.gridNet), values.home, ...members.map(batWatts), ...individuals.map((item) => Math.abs(item.value)));
+    const dia = (watts) => {
+      const w = Math.abs(watts);
+      const ratio = w > threshold ? w / maxW : 0;
+      return "clamp(34px, " + (8.2 + 8.2 * Math.sqrt(ratio)).toFixed(2) + "cqw, 92px)";
+    };
+
+    const lineSolar = this._line(config.solar ? SOLAR_POS : null, solarActive, false, values.solar, solarActive ? COLORS.solar : COLORS.idle);
+    const lineGrid = this._line(config.grid ? GRID_POS : null, gridActive, !gridImport, values.gridNet, gridColor);
+    const lineBat0 = this._line(bat0 ? BATTERY_POS[0] : null, batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), this._batteryColor(bat0));
+    const lineBat1 = this._line(bat1 ? BATTERY_POS[1] : null, batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), this._batteryColor(bat1));
+    const lineCar = this._line(car ? BATTERY_POS[2] : null, batActive(car), !!car && car.charge > car.discharge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), this._batteryColor(car));
+    const lineInd = IND_POS.map((pos, i) => {
       const item = individuals[i];
       if (!item) {
         return this._line(null, false, true, 0, COLORS.idle);
@@ -464,21 +401,21 @@ class DualBatteryFlowCard extends LitElement {
 
     const nodes = [];
     if (config.solar) {
-      nodes.push(this._node(config.solar, [14, 20], "", solarActive ? COLORS.solar : COLORS.idle, solarActive, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar"));
+      nodes.push(this._node(config.solar, SOLAR_POS, "", solarActive ? COLORS.solar : COLORS.idle, solarActive, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", dia(values.solar)));
     }
     if (config.grid) {
-      nodes.push(this._node(config.grid.consumption || config.grid.production, [14, 60], "", gridColor, gridActive, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid"));
+      nodes.push(this._node(config.grid.consumption || config.grid.production, GRID_POS, "", gridColor, gridActive, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", dia(Math.abs(values.gridNet))));
     }
-    nodes.push(this._node(config.home, [48, 40], "hero", COLORS.home, homeActive, "mdi:home", this._fmt(values.home), "", "Home"));
+    nodes.push(this._node(config.home, HOME, "hero", COLORS.home, homeActive, "mdi:home", this._fmt(values.home), "", "Home", dia(values.home)));
     members.forEach((battery, i) => {
       const isCar = battery === values.car;
       const icon = isCar ? battery.config.icon || "mdi:car-electric" : this._batteryIcon(battery);
       const name = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
       const color = this._batteryColor(battery);
-      nodes.push(this._node(battery.config.entity, batteryPos[i], "", color, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name));
+      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", color, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, dia(batWatts(battery))));
     });
     individuals.forEach((item, i) => {
-      nodes.push(this._node(item.entity, indPos[i], "ind", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, item.icon, this._fmt(item.value), "", item.name));
+      nodes.push(this._node(item.entity, IND_POS[i], "ind", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, dia(item.value)));
     });
 
     return html`
@@ -507,7 +444,7 @@ class DualBatteryFlowCard extends LitElement {
             <path class="${lineInd[3].cls}" data-line="ind3" d="${lineInd[3].d}" style="${lineInd[3].style}" pathLength="100" vector-effect="non-scaling-stroke" />
           </svg>
           <span class="group-tag" style="left:2%;top:2%">Inputs</span>
-          <span class="group-tag" style="left:2%;bottom:1%">Batteries</span>
+          <span class="group-tag" style="left:2%;top:12%">Batteries</span>
           <span class="group-tag" style="right:2%;top:2%">Devices</span>
           ${nodes}
         </div>
