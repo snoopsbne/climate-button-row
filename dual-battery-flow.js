@@ -44,11 +44,14 @@ const CAR_CTRL = [[36, 50], [36, 75]];
 // The right device column is two columns wide, so rank2/rank4 (the right-hand
 // cells) get gentle arcs that bow over/under the rank1/rank3 bubbles instead of
 // daisy-chaining straight through them. Home->rank1 (IND[0]) and Home->rank3
-// (IND[2]) stay straight. Control points are percent coords built in pixels in
-// render(), so the chevrons reuse the exact same d.
+// (IND[2]) stay straight. Like every other line, the path runs DEVICE -> HOME
+// (render() reverses the control points), so one reverse flag drives travel
+// home->device for the dashes AND chevrons. Control points are percent coords
+// written in home->device order here and built in pixels in render(), so the
+// chevrons reuse the exact same d.
 const IND_CURVE_CTRL = {
-  1: [[64, 14], [80, 14]], // HOME -> rank2 (top-right cell)
-  3: [[64, 86], [80, 86]], // HOME -> rank4 (bottom-right cell)
+  1: [[64, 14], [80, 14]], // HOME -> rank2 (top-right cell); render() uses these reversed (rank2 -> HOME)
+  3: [[64, 86], [80, 86]], // HOME -> rank4 (bottom-right cell); render() uses these reversed (rank4 -> HOME)
 };
 
 class DualBatteryFlowCard extends LitElement {
@@ -575,7 +578,9 @@ class DualBatteryFlowCard extends LitElement {
         return this._line({ d: "", len: 0 }, false, true, 0, COLORS.idle);
       }
       const ctrl = IND_CURVE_CTRL[i];
-      const geom = ctrl ? this._curve(HOME, ctrl[0], ctrl[1], pos) : this._straight(pos);
+      // device -> HOME like the straight feeds (control points reversed), so
+      // the shared reverse=true means home -> device travel on every line
+      const geom = ctrl ? this._curve(pos, ctrl[1], ctrl[0], HOME) : this._straight(pos);
       return this._line(geom, item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
     });
 
