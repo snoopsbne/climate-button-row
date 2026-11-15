@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) on the right; every bubble is sized by its share of the biggest power flow, with magnitude-weighted animated lines.",
+  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) on the right; every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow.",
   preview: false,
 });
 
@@ -25,24 +25,68 @@ const COLORS = {
   idle: "var(--disabled-text-color, #9e9e9e)",
 };
 
-const HOME = [50, 38];
+const HOME = [50, 40];
 // Layout (percent coords, centre-anchored nodes): three columns —
 // inputs left (x=15), batteries middle (x=50, Home hub between house and garage),
-// devices right (x=85, ranked top-down).
+// devices right (x=85, ranked top-down). The house battery bubble is larger than
+// the garage/car, so the middle column is spaced wider than before.
 const SOLAR_POS = [15, 25];
 const GRID_POS = [15, 75];
-const BATTERY_POS = [[50, 12], [50, 63], [50, 87]];
+// Slots: house / garage / car. Without a car the car slot is simply unused
+// (2-member fallback: house + garage; 1-member: house only).
+const BATTERY_POS = [[50, 13], [50, 65], [50, 85]];
 const IND_POS = [[85, 16], [85, 40], [85, 64], [85, 87]];
 // Car flow bows into the gap between the left and middle columns so it doesn't
-// daisy-chain straight down through the garage bubble. Starts at HOME, ends at the car.
-const CAR_CURVE = "M " + HOME[0] + "," + HOME[1] + " C 36,50 36,75 " + BATTERY_POS[2][0] + "," + BATTERY_POS[2][1];
+// daisy-chain straight down through the garage bubble. Starts at HOME, ends at
+// the car; control points at x=36%, y=50%/75% (built in pixels in render()).
+const CAR_CTRL = [[36, 50], [36, 75]];
 
 class DualBatteryFlowCard extends LitElement {
   static get properties() {
     return {
       hass: Object,
       config: Object,
+      // Pixel size of the .container, kept in sync by a ResizeObserver so the
+      // SVG viewBox and the CSS motion paths share one pixel coordinate space.
+      // Defaults match the jsdom harness (no ResizeObserver there).
+      _w: Number,
+      _h: Number,
     };
+  }
+
+  constructor() {
+    super();
+    this._w = 537;
+    this._h = 419;
+    this._ro = null;
+  }
+
+  firstUpdated() {
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const container = this.shadowRoot && this.shadowRoot.querySelector(".container");
+    if (!container) {
+      return;
+    }
+    this._ro = new ResizeObserver((entries) => {
+      const rect = entries[0].contentRect;
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+      if (w > 0 && h > 0 && (w !== this._w || h !== this._h)) {
+        this._w = w;
+        this._h = h;
+      }
+    });
+    this._ro.observe(container);
+  }
+
+  disconnectedCallback() {
+    if (this._ro) {
+      this._ro.disconnect();
+      this._ro = null;
+    }
+    super.disconnectedCallback();
   }
 
   static get styles() {
@@ -59,9 +103,9 @@ class DualBatteryFlowCard extends LitElement {
       .container {
         position: relative;
         width: 100%;
-        aspect-ratio: 100 / 78;
+        aspect-ratio: 100 / 82;
         min-height: 280px;
-        max-height: 440px;
+        max-height: 460px;
         container-type: inline-size;
       }
       svg.lines {
@@ -92,6 +136,40 @@ class DualBatteryFlowCard extends LitElement {
       @keyframes flow {
         to {
           stroke-dashoffset: -16;
+        }
+      }
+      /* Direction chevrons: two per flow line riding the same pixel path via
+         CSS motion-path (shadow-DOM safe — no SMIL, no url(#) refs). The
+         top+right border corner rotated 45deg points along +x; offset-rotate
+         auto aims it along the travel direction, .reverse flips both the
+         travel and the arrowhead so chevrons always point where electrons go.
+         Nodes sit at z-index 2 so chevrons vanish under the bubbles at the ends. */
+      .e-arrow {
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        border-right: 2px solid;
+        border-top: 2px solid;
+        transform: rotate(45deg);
+        offset-rotate: auto;
+        animation: travel linear infinite;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+      .e-arrow.on {
+        opacity: 0.95;
+      }
+      .e-arrow.reverse {
+        animation-direction: reverse;
+        offset-rotate: reverse;
+      }
+      @keyframes travel {
+        from {
+          offset-distance: 0%;
+        }
+        to {
+          offset-distance: 100%;
         }
       }
       .group-tag {
@@ -310,16 +388,74 @@ class DualBatteryFlowCard extends LitElement {
       this._nodeActivated(ev);
     }
   };
-  _to(pos) {
-    return pos ? "M " + pos[0] + "," + pos[1] + " L " + HOME[0] + "," + HOME[1] : "";
+  // Pixel geometry helpers: every endpoint/control point is percent/100 x the
+  // observed container size, so the SVG viewBox (0 0 _w _h) is 1:1 with CSS px
+  // and the chevrons' offset-path strings can reuse the exact same `d`.
+  _pt(pos) {
+    return [+(pos[0] * this._w / 100).toFixed(2), +(pos[1] * this._h / 100).toFixed(2)];
   }
 
-  _line(d, active, reverse, watts, color) {
+  _straight(pos) {
+    if (!pos) {
+      return { d: "", len: 0 };
+    }
+    const a = this._pt(pos);
+    const b = this._pt(HOME);
+    return { d: "M " + a[0] + "," + a[1] + " L " + b[0] + "," + b[1], len: Math.hypot(b[0] - a[0], b[1] - a[1]) };
+  }
+
+  _carCurve() {
+    const home = this._pt(HOME);
+    const end = this._pt(BATTERY_POS[2]);
+    const c1 = this._pt(CAR_CTRL[0]);
+    const c2 = this._pt(CAR_CTRL[1]);
+    // cubic length by sampling (getTotalLength is unavailable pre-render/jsdom)
+    let len = 0;
+    let prev = home;
+    for (let i = 1; i <= 32; i++) {
+      const t = i / 32;
+      const u = 1 - t;
+      const p = [
+        u * u * u * home[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * end[0],
+        u * u * u * home[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * end[1],
+      ];
+      len += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+      prev = p;
+    }
+    return { d: "M " + home[0] + "," + home[1] + " C " + c1[0] + "," + c1[1] + " " + c2[0] + "," + c2[1] + " " + end[0] + "," + end[1], len };
+  }
+
+  _line(geom, active, reverse, watts, color) {
     return {
-      d,
+      d: geom.d,
+      active,
+      reverse,
+      color,
+      // chevrons take ~1.2–3s per traversal, scaled by pixel length
+      dur: Math.min(3, Math.max(1.2, geom.len / 140)),
       cls: "flow" + (active ? " active" : "") + (reverse ? " reverse" : ""),
       style: "stroke:" + color + ";stroke-width:" + Math.min(6, Math.max(1.5, 1.5 + (Math.abs(watts) / 1000) * 0.9)).toFixed(2) + "px",
     };
+  }
+
+  // Two static chevrons per line (18 total), always in the template when the
+  // browser supports motion paths; display:none while the line has no `d`.
+  // The second chevron is phase-shifted half a duration so flows read as a
+  // steady stream. `.on` exactly when the line is active; `.reverse` exactly
+  // mirrors the line's reverse flag.
+  _arrows(line, key) {
+    if (!line.d) {
+      return html`
+        <div class="e-arrow" data-arrow="${key}" style="display:none"></div>
+        <div class="e-arrow" data-arrow="${key}" style="display:none"></div>
+      `;
+    }
+    const cls = "e-arrow" + (line.active ? " on" : "") + (line.reverse ? " reverse" : "");
+    const base = "offset-path:path('" + line.d + "');border-color:" + line.color + ";animation-duration:" + line.dur.toFixed(2) + "s;";
+    return html`
+      <div class="${cls}" data-arrow="${key}" style="${base}"></div>
+      <div class="${cls}" data-arrow="${key}" style="${base}animation-delay:-${(line.dur / 2).toFixed(2)}s"></div>
+    `;
   }
 
   _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText, d) {
@@ -389,23 +525,25 @@ class DualBatteryFlowCard extends LitElement {
       return w > threshold ? w / maxW : 0;
     };
     const dia = (watts) => "clamp(34px, " + (8.2 + 7.4 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 84px)";
-    // batteries (house, garage, car) get a bigger floor so the middle column doesn't waste space.
+    // batteries (garage, car) get a bigger floor so the middle column doesn't waste space;
+    // the HOUSE battery (members[0]) is enlarged further — it is the asset people watch.
     const diaBat = (watts) => "clamp(48px, " + (11.5 + 4.1 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 84px)";
+    const diaHouse = (watts) => "clamp(56px, " + (14 + 4.6 * Math.sqrt(ratioOf(watts))).toFixed(2) + "cqw, 96px)";
     const batLine = (battery) => (batActive(battery) ? COLORS.good : COLORS.idle);
 
-    const lineSolar = this._line(this._to(config.solar ? SOLAR_POS : null), solarActive, false, values.solar, solarActive ? COLORS.good : COLORS.idle);
-    const lineGrid = this._line(this._to(config.grid ? GRID_POS : null), gridActive, !gridImport, values.gridNet, gridLine);
-    const lineBat0 = this._line(this._to(bat0 ? BATTERY_POS[0] : null), batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), batLine(bat0));
-    const lineBat1 = this._line(this._to(bat1 ? BATTERY_POS[1] : null), batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), batLine(bat1));
+    const lineSolar = this._line(this._straight(config.solar ? SOLAR_POS : null), solarActive, false, values.solar, solarActive ? COLORS.good : COLORS.idle);
+    const lineGrid = this._line(this._straight(config.grid ? GRID_POS : null), gridActive, !gridImport, values.gridNet, gridLine);
+    const lineBat0 = this._line(this._straight(bat0 ? BATTERY_POS[0] : null), batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), batLine(bat0));
+    const lineBat1 = this._line(this._straight(bat1 ? BATTERY_POS[1] : null), batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), batLine(bat1));
     // the car bypass runs HOME -> car, so its reverse polarity is flipped vs the battery lines:
     // charging runs forward along the curve, discharging reverses it.
-    const lineCar = this._line(car ? CAR_CURVE : "", batActive(car), !!car && car.discharge > car.charge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), batLine(car));
+    const lineCar = this._line(car ? this._carCurve() : { d: "", len: 0 }, batActive(car), !!car && car.discharge > car.charge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), batLine(car));
     const lineInd = IND_POS.map((pos, i) => {
       const item = individuals[i];
       if (!item) {
-        return this._line("", false, true, 0, COLORS.idle);
+        return this._line({ d: "", len: 0 }, false, true, 0, COLORS.idle);
       }
-      return this._line(this._to(pos), item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
+      return this._line(this._straight(pos), item.value > threshold, true, item.value, item.value > threshold ? deviceLine : COLORS.idle);
     });
 
     const nodes = [];
@@ -420,18 +558,24 @@ class DualBatteryFlowCard extends LitElement {
       const isCar = battery === values.car;
       const icon = isCar ? battery.config.icon || "mdi:car-electric" : this._batteryIcon(battery);
       const name = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
-      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", COLORS.battery, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, diaBat(batWatts(battery))));
+      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", COLORS.battery, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, i === 0 ? diaHouse(batWatts(battery)) : diaBat(batWatts(battery))));
     });
     individuals.forEach((item, i) => {
       nodes.push(this._node(item.entity, IND_POS[i], "ind", COLORS.individual, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, dia(item.value)));
     });
 
+    // Chevrons only where CSS motion paths exist (jsdom has no CSS.supports,
+    // so the harness's Part A exercises the graceful no-arrow fallback).
+    const motionOK = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("offset-path", 'path("M0,0 L1,1")');
+    const arrowKeys = [["solar", lineSolar], ["grid", lineGrid], ["bat0", lineBat0], ["bat1", lineBat1], ["car", lineCar], ["ind0", lineInd[0]], ["ind1", lineInd[1]], ["ind2", lineInd[2]], ["ind3", lineInd[3]]];
+
     return html`
       <ha-card>
         ${config.title ? html`<div class="title">${config.title}</div>` : ""}
         <div class="container">
-          <!-- every path is static in this template (nested html templates parse SVG paths as HTML elements) -->
-          <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <!-- every path is static in this template (nested html templates parse SVG paths as HTML elements);
+               viewBox is in observed container pixels so paths and chevrons share one coordinate space -->
+          <svg class="lines" viewBox="0 0 ${this._w} ${this._h}" preserveAspectRatio="none">
             <path class="track" d="${lineSolar.d}" pathLength="100" vector-effect="non-scaling-stroke" />
             <path class="${lineSolar.cls}" data-line="solar" d="${lineSolar.d}" style="${lineSolar.style}" pathLength="100" vector-effect="non-scaling-stroke" />
             <path class="track" d="${lineGrid.d}" pathLength="100" vector-effect="non-scaling-stroke" />
@@ -451,6 +595,7 @@ class DualBatteryFlowCard extends LitElement {
             <path class="track" d="${lineInd[3].d}" pathLength="100" vector-effect="non-scaling-stroke" />
             <path class="${lineInd[3].cls}" data-line="ind3" d="${lineInd[3].d}" style="${lineInd[3].style}" pathLength="100" vector-effect="non-scaling-stroke" />
           </svg>
+          ${motionOK ? arrowKeys.map(([key, line]) => this._arrows(line, key)) : ""}
           <span class="group-tag" style="left:2%;top:2%">Inputs</span>
           <span class="group-tag" style="left:27%;top:2%">Batteries</span>
           <span class="group-tag" style="right:2%;top:1%">Devices</span>

@@ -5,7 +5,7 @@ Custom Lovelace cards for Home Assistant:
 - `custom:climate-button-row` – control a climate entity: `-` `[temp]` `+` `AUTO` `ON` `OFF`.
 - `custom:fan-light-button-row` – fan percent buttons (`HIGH` `MED` `LOW` `OFF`) with an optional paired light toggle (`LIGHT`), forked from [fan-percent-button-row](https://github.com/finity69x2/fan-percent-button-row).
 - `custom:fan-onoff-button-row` – on/off buttons (`OFF` `ON`) for fans and switches that only support on/off.
-- `custom:dual-battery-flow-card` – compact grouped power flow diagram in **three columns**: **Inputs** (solar top, grid bottom) on the left, **Batteries** (house + garage + optional car) in the middle column with the **Home** hub between house and garage, **Devices** (top-4 ranked) down the right column, with usage-scaled bubbles (every node's circle grows with its share of the biggest power flow) and magnitude-weighted animated flow lines (the car flow is a curved bypass around the garage bubble), inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
+- `custom:dual-battery-flow-card` – compact grouped power flow diagram in **three columns**: **Inputs** (solar top, grid bottom) on the left, **Batteries** (house + garage + optional car) in the middle column with the **Home** hub between house and garage, **Devices** (top-4 ranked) down the right column, with usage-scaled bubbles (every node's circle grows with its share of the biggest power flow; the house battery gets a larger floor than garage/car) and magnitude-weighted animated flow lines (the car flow is a curved bypass around the garage bubble) with direction chevrons riding each active flow, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
 
 ## Installation
 
