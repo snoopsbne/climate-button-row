@@ -62,7 +62,18 @@ class DualBatteryFlowCard extends LitElement {
   }
 
   firstUpdated() {
-    if (typeof ResizeObserver === "undefined") {
+    this._observeContainer();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    // HA re-parents card elements while a view settles; re-attach the observer
+    // on every connect or _w/_h would stay stale after a disconnect.
+    this._observeContainer();
+  }
+
+  _observeContainer() {
+    if (typeof ResizeObserver === "undefined" || this._ro) {
       return;
     }
     const container = this.shadowRoot && this.shadowRoot.querySelector(".container");
