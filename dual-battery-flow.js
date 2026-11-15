@@ -39,6 +39,7 @@ class DualBatteryFlowCard extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 10px;
+        container-type: inline-size;
       }
       .head {
         display: flex;
@@ -149,6 +150,16 @@ class DualBatteryFlowCard extends LitElement {
       }
       @media (max-width: 520px) {
         .cols-4,
+        .cols-3 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @container (max-width: 500px) {
+        .cols-4 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @container (max-width: 400px) {
         .cols-3 {
           grid-template-columns: repeat(2, 1fr);
         }
