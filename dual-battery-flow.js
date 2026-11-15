@@ -2,23 +2,13 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Power flow card with solar, grid, home, two batteries and an optional car node.",
+  description: "Compact grouped power flow card: Inputs, Batteries (two batteries + optional car) and ranked Devices as tiles with animated flow buses.",
   preview: false,
 });
 
 const LitElement = customElements.get("ha-panel-lovelace") ? Object.getPrototypeOf(customElements.get("ha-panel-lovelace")) : Object.getPrototypeOf(customElements.get("hc-lovelace"));
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
-
-const POSITIONS = {
-  solar: [50, 10],
-  grid: [14, 47],
-  home: [50, 47],
-  battery: [50, 84],
-  battery_2: [20, 84],
-  car: [86, 84],
-  individual: [[86, 16], [86, 33], [86, 50], [86, 67]],
-};
 
 const COLORS = {
   solar: "#f6a623",
@@ -44,127 +34,212 @@ class DualBatteryFlowCard extends LitElement {
       :host {
         display: block;
       }
-      .container {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 4 / 3.4;
-        min-height: 320px;
-        max-height: 460px;
-      }
-      .lines {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-      }
-      .lines path.track {
-        fill: none;
-        stroke: var(--divider-color, #9e9e9e);
-        stroke-width: 1.2;
-        opacity: 0.25;
-        stroke-linecap: round;
-      }
-      .lines path.flow {
-        fill: none;
-        stroke-width: 1;
-        stroke-linecap: round;
-        stroke-dasharray: 4 6;
-        opacity: 0.15;
-      }
-      .lines path.flow.active {
-        opacity: 1;
-        animation: flow 1.1s linear infinite;
-      }
-      .lines path.flow.reverse {
-        animation-direction: reverse;
-      }
-      @keyframes flow {
-        from {
-          stroke-dashoffset: 0;
-        }
-        to {
-          stroke-dashoffset: -12;
-        }
-      }
-      .node {
-        position: absolute;
-        transform: translate(-50%, -50%);
+      .wrap {
+        padding: 12px 14px;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 4px;
+        gap: 10px;
       }
-      .node.individual .circle {
-        width: 54px;
-        height: 54px;
-      }
-      .circle {
+      .head {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background: var(--ha-card-background, var(--card-background-color, #fff));
-        box-shadow: 0 0 0 2px var(--ring-color, var(--divider-color, #e0e0e0)), 0 2px 6px rgba(0, 0, 0, 0.25);
-        color: var(--primary-text-color);
-        transition: box-shadow 0.3s;
-      }
-      .circle ha-icon {
-        --mdc-icon-size: 20px;
-        color: var(--ring-color, var(--secondary-text-color));
-      }
-      .value {
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.1;
-        margin-top: 2px;
-      }
-      .state {
-        font-size: 9px;
-        color: var(--secondary-text-color);
-        line-height: 1;
-      }
-      .label {
-        font-size: 11px;
-        color: var(--primary-text-color);
-        text-align: center;
-        line-height: 1.1;
-        max-width: 110px;
+        justify-content: space-between;
+        gap: 8px;
       }
       .title {
         font-size: 14px;
-        font-weight: 500;
-        padding: 0 0 4px 4px;
+        font-weight: 600;
         color: var(--primary-text-color);
       }
-      @media (max-width: 480px) {
-        .circle {
-          width: 60px;
-          height: 60px;
+      .home-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: var(--ha-card-background, var(--card-background-color, #fff));
+        box-shadow: 0 0 0 1.5px var(--home-color, #546e7a), var(--home-glow, 0 0 transparent);
+      }
+      .home-chip ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--home-color, #546e7a);
+      }
+      .home-value {
+        font-size: 15px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--primary-text-color);
+      }
+      .home-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--secondary-text-color);
+      }
+      .group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .group-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        flex: none;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      .dot.pulse {
+        animation: dotpulse 1.6s ease-in-out infinite;
+      }
+      @keyframes dotpulse {
+        0%,
+        100% {
+          opacity: 0.45;
         }
-        .circle ha-icon {
-          --mdc-icon-size: 16px;
+        50% {
+          opacity: 1;
         }
-        .node.individual .circle {
-          width: 40px;
-          height: 40px;
+      }
+      .group-name {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--secondary-text-color);
+      }
+      .bus {
+        flex: 1;
+        height: 2px;
+        border-radius: 2px;
+        background: repeating-linear-gradient(90deg, var(--accent) 0 5px, transparent 5px 12px);
+        opacity: 0.18;
+      }
+      .bus.active {
+        opacity: 0.85;
+        animation: busflow 1.1s linear infinite;
+      }
+      .bus.reverse {
+        animation-direction: reverse;
+      }
+      @keyframes busflow {
+        to {
+          background-position: 12px 0;
         }
-        .node.individual .circle ha-icon {
-          --mdc-icon-size: 13px;
+      }
+      .tiles {
+        display: grid;
+        gap: 8px;
+      }
+      .cols-1 {
+        grid-template-columns: repeat(1, 1fr);
+      }
+      .cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      @media (max-width: 520px) {
+        .cols-4,
+        .cols-3 {
+          grid-template-columns: repeat(2, 1fr);
         }
-        .value {
-          font-size: 11px;
-        }
-        .node.individual .value {
-          font-size: 9px;
-        }
-        .label {
-          font-size: 10px;
-        }
-        .node.individual .label {
-          font-size: 8px;
+      }
+      .tile {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 7px 9px 8px;
+        border-radius: 10px;
+        background: var(--ha-card-background, var(--card-background-color, #fff));
+        box-shadow: 0 0 0 1px var(--divider-color, rgba(0, 0, 0, 0.12));
+        transition: box-shadow 0.2s, transform 0.2s;
+        min-width: 0;
+      }
+      .tile[role="button"] {
+        cursor: pointer;
+      }
+      .tile[role="button"]:hover,
+      .tile[role="button"]:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 0 0 1px var(--ring-color), 0 3px 10px rgba(0, 0, 0, 0.25);
+        outline: none;
+      }
+      .tile-top {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        min-width: 0;
+      }
+      .chip {
+        flex: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--ring-color) 16%, transparent);
+      }
+      .tile.idle .chip {
+        background: color-mix(in srgb, var(--disabled-text-color) 16%, transparent);
+      }
+      .chip ha-icon {
+        --mdc-icon-size: 16px;
+        color: var(--ring-color);
+      }
+      .name {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .tile-bottom {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .value {
+        font-size: 14px;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        color: var(--primary-text-color);
+      }
+      .tile.idle .value {
+        color: var(--secondary-text-color);
+      }
+      .state {
+        font-size: 10px;
+        color: var(--secondary-text-color);
+      }
+      .flow {
+        height: 2px;
+        border-radius: 2px;
+        margin-top: 1px;
+        background: repeating-linear-gradient(90deg, var(--ring-color) 0 4px, transparent 4px 10px);
+        opacity: 0.14;
+      }
+      .flow.active {
+        opacity: 0.7;
+        animation: tileflow 1.1s linear infinite;
+      }
+      .flow.reverse {
+        animation-direction: reverse;
+      }
+      @keyframes tileflow {
+        to {
+          background-position: 10px 0;
         }
       }
     `;
@@ -178,7 +253,7 @@ class DualBatteryFlowCard extends LitElement {
   }
 
   getCardSize() {
-    return 5;
+    return 3;
   }
 
   _state(entityId) {
@@ -291,25 +366,64 @@ class DualBatteryFlowCard extends LitElement {
     };
   }
 
-  _node(key, position, icon, value, stateText, label, color) {
-    const kind = key.startsWith("individual") ? "individual" : key;
-    return html`
-      <div class="node ${kind}" style="left:${position[0]}%;top:${position[1]}%">
-        <div class="circle" style="--ring-color:${color}">
-          <ha-icon icon="${icon}"></ha-icon>
-          <div class="value">${value}</div>
-          ${stateText ? html`<div class="state">${stateText}</div>` : ""}
-        </div>
-        <div class="label">${label}</div>
+  _tileActivated = (ev) => {
+    const tile = ev.currentTarget;
+    const entityId = tile && tile.getAttribute("data-entity");
+    if (entityId) {
+      this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
+    }
+  };
+
+  _tileKeydown = (ev) => {
+    if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") {
+      ev.preventDefault();
+      this._tileActivated(ev);
+    }
+  };
+
+  _tile(entity, icon, name, valueText, stateText, color, active, reverse) {
+    const cls = "tile" + (active ? "" : " idle");
+    const inner = html`
+      <div class="tile-top">
+        <div class="chip"><ha-icon icon="${icon}"></ha-icon></div>
+        <div class="name">${name}</div>
       </div>
+      <div class="tile-bottom">
+        <div class="value">${valueText}</div>
+        ${stateText ? html`<div class="state">${stateText}</div>` : ""}
+      </div>
+      <div class="flow ${active ? "active" : ""} ${reverse ? "reverse" : ""}"></div>
     `;
+    if (entity) {
+      return html`
+        <div
+          class="${cls}"
+          style="--ring-color:${color}"
+          role="button"
+          tabindex="0"
+          title="${name} — ${entity}"
+          data-entity="${entity}"
+          @click=${this._tileActivated}
+          @keydown=${this._tileKeydown}
+        >
+          ${inner}
+        </div>
+      `;
+    }
+    return html`<div class="${cls}" style="--ring-color:${color}">${inner}</div>`;
   }
 
-  _d(from, to) {
-    if (!from || !to) {
-      return "";
-    }
-    return "M" + from[0] + "," + from[1] + " L" + to[0] + "," + to[1];
+  _group(name, accent, active, cols, reverse, tiles) {
+    return html`
+      <div class="group">
+        <div class="group-head" style="--accent:${accent}">
+          <span class="dot ${active ? "pulse" : ""}"></span>
+          <span class="group-name">${name}</span>
+          <span class="bus ${active ? "active" : ""} ${reverse ? "reverse" : ""}"></span>
+        </div>
+        <div class="tiles cols-${cols}">${tiles}</div>
+      </div>
+    `;
   }
 
   render() {
@@ -319,101 +433,79 @@ class DualBatteryFlowCard extends LitElement {
     const solarActive = values.solar > threshold;
     const gridActive = Math.abs(values.gridNet) > threshold;
     const gridImport = values.gridNet >= 0;
-    const gridColor = gridImport ? COLORS.import : COLORS.export;
+    const gridColor = gridActive ? (gridImport ? COLORS.import : COLORS.export) : COLORS.idle;
+    const homeActive = values.home > threshold;
 
-    const batteryNodes = [];
-    values.batteries.forEach((battery, index) => {
-      const key = index === 0 ? "battery" : "battery_2";
-      const position = POSITIONS[key];
-      const power = battery.charge >= battery.discharge ? battery.charge : battery.discharge;
-      const stateText = battery.soc == null ? "" : Math.round(battery.soc) + "%";
-      const label = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
-      batteryNodes.push(this._node(key, position, this._batteryIcon(battery), this._fmt(power), stateText, label, this._batteryColor(battery)));
-    });
-    const car = values.car;
-    if (car) {
-      const power = car.charge >= car.discharge ? car.charge : car.discharge;
-      const stateText = car.soc == null ? "" : Math.round(car.soc) + "%";
-      const label = car.config.name || (car.config.entity ? this._state(car.config.entity)?.attributes?.friendly_name : "") || car.alt;
-      const icon = car.config.icon || "mdi:car-electric";
-      batteryNodes.push(this._node("car", POSITIONS.car, icon, this._fmt(power), stateText, label, this._batteryColor(car)));
-    }
+    const members = values.car ? [...values.batteries, values.car] : values.batteries;
+    const totalCharge = members.reduce((sum, b) => sum + b.charge, 0);
+    const totalDischarge = members.reduce((sum, b) => sum + b.discharge, 0);
+    const chargingDominant = totalCharge > totalDischarge;
+    const batteriesActive = members.some((b) => b.charge > threshold || b.discharge > threshold);
 
     let individuals = values.individuals.filter((item) => item.threshold == null || item.value > item.threshold);
     const individualCount = config.individual_count != null ? Number(config.individual_count) : null;
     if (individualCount != null && Number.isFinite(individualCount) && individualCount > 0) {
       individuals = [...individuals].sort((a, b) => b.value - a.value).slice(0, individualCount);
     }
-    individuals = individuals.slice(0, POSITIONS.individual.length);
+    individuals = individuals.slice(0, 4);
+    const devicesActive = individuals.some((item) => item.value > threshold);
 
-    const individualNodes = [];
-    individuals.forEach((item, index) => {
-      const position = POSITIONS.individual[index];
-      individualNodes.push(
-        this._node("individual" + index, position, item.icon, this._fmt(item.value), "", item.name, item.value > threshold ? COLORS.individual : COLORS.idle)
+    const inputTiles = [];
+    if (config.solar) {
+      inputTiles.push(this._tile(config.solar, "mdi:weather-sunny", "Solar", this._fmt(values.solar), "", solarActive ? COLORS.solar : COLORS.idle, solarActive, false));
+    }
+    if (config.grid) {
+      const gridEntity = config.grid.consumption || config.grid.production;
+      inputTiles.push(
+        this._tile(
+          gridEntity,
+          "mdi:transmission-tower",
+          "Grid",
+          this._fmt(Math.abs(values.gridNet)),
+          gridActive ? (gridImport ? "import" : "export") : "idle",
+          gridColor,
+          gridActive,
+          !gridImport
+        )
       );
+    }
+
+    const batteryTiles = members.map((battery) => {
+      const isCar = battery === values.car;
+      const icon = isCar ? battery.config.icon || "mdi:car-electric" : this._batteryIcon(battery);
+      const name = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
+      const power = Math.max(battery.charge, battery.discharge);
+      const stateText = battery.soc == null ? "" : Math.round(battery.soc) + "%";
+      const active = battery.charge > threshold || battery.discharge > threshold;
+      return this._tile(battery.config.entity, icon, name, this._fmt(power), stateText, this._batteryColor(battery), active, battery.charge > battery.discharge);
     });
 
-    const batteryRows = [0, 1].map((index) => {
-      const battery = values.batteries[index];
-      const position = POSITIONS[index === 0 ? "battery" : "battery_2"];
-      const charging = battery && battery.charge > threshold && battery.charge >= battery.discharge;
-      const discharging = battery && battery.discharge > threshold;
-      return {
-        d: battery ? this._d(position, POSITIONS.home) : "",
-        active: charging || discharging,
-        reverse: charging,
-        color: charging ? COLORS.charge : COLORS.discharge,
-      };
-    });
-
-    const carCharging = !!car && car.charge > threshold && car.charge >= car.discharge;
-    const carRow = {
-      d: car ? this._d(POSITIONS.car, POSITIONS.home) : "",
-      active: carCharging || (!!car && car.discharge > threshold),
-      reverse: carCharging,
-      color: carCharging ? COLORS.charge : COLORS.discharge,
-    };
-
-    const individualRows = POSITIONS.individual.map((position, index) => {
-      const item = individuals[index];
-      return {
-        d: item ? this._d(position, POSITIONS.home) : "",
-        active: !!(item && item.value > threshold),
-        reverse: true,
-        color: COLORS.individual,
-      };
-    });
+    const deviceTiles = individuals.map((item) =>
+      this._tile(item.entity, item.icon, item.name, this._fmt(item.value), "", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, false)
+    );
 
     return html`
       <ha-card>
-        ${config.title ? html`<div class="title">${config.title}</div>` : ""}
-        <div class="container">
-          <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path class="track" d="${this._d(POSITIONS.solar, POSITIONS.home)}"></path>
-            <path class="flow ${solarActive ? "active" : ""}" style="stroke:${COLORS.solar}" d="${this._d(POSITIONS.solar, POSITIONS.home)}"></path>
-            <path class="track" d="${this._d(POSITIONS.grid, POSITIONS.home)}"></path>
-            <path class="flow ${gridActive ? "active" : ""} ${gridImport ? "" : "reverse"}" style="stroke:${gridColor}" d="${this._d(POSITIONS.grid, POSITIONS.home)}"></path>
-            <path class="track" d="${batteryRows[0].d}"></path>
-            <path class="flow ${batteryRows[0].active ? "active" : ""} ${batteryRows[0].reverse ? "reverse" : ""}" style="stroke:${batteryRows[0].color}" d="${batteryRows[0].d}"></path>
-            <path class="track" d="${batteryRows[1].d}"></path>
-            <path class="flow ${batteryRows[1].active ? "active" : ""} ${batteryRows[1].reverse ? "reverse" : ""}" style="stroke:${batteryRows[1].color}" d="${batteryRows[1].d}"></path>
-            <path class="track" d="${carRow.d}"></path>
-            <path class="flow ${carRow.active ? "active" : ""} ${carRow.reverse ? "reverse" : ""}" style="stroke:${carRow.color}" d="${carRow.d}"></path>
-            <path class="track" d="${individualRows[0].d}"></path>
-            <path class="flow ${individualRows[0].active ? "active" : ""} ${individualRows[0].reverse ? "reverse" : ""}" style="stroke:${individualRows[0].color}" d="${individualRows[0].d}"></path>
-            <path class="track" d="${individualRows[1].d}"></path>
-            <path class="flow ${individualRows[1].active ? "active" : ""} ${individualRows[1].reverse ? "reverse" : ""}" style="stroke:${individualRows[1].color}" d="${individualRows[1].d}"></path>
-            <path class="track" d="${individualRows[2].d}"></path>
-            <path class="flow ${individualRows[2].active ? "active" : ""} ${individualRows[2].reverse ? "reverse" : ""}" style="stroke:${individualRows[2].color}" d="${individualRows[2].d}"></path>
-            <path class="track" d="${individualRows[3].d}"></path>
-            <path class="flow ${individualRows[3].active ? "active" : ""} ${individualRows[3].reverse ? "reverse" : ""}" style="stroke:${individualRows[3].color}" d="${individualRows[3].d}"></path>
-          </svg>
-          ${this._node("solar", POSITIONS.solar, "mdi:weather-sunny", this._fmt(values.solar), "", "Solar", solarActive ? COLORS.solar : COLORS.idle)}
-          ${this._node("grid", POSITIONS.grid, "mdi:transmission-tower", this._fmt(Math.abs(values.gridNet)), gridActive ? (gridImport ? "import" : "export") : "idle", "Grid", gridActive ? gridColor : COLORS.idle)}
-          ${this._node("home", POSITIONS.home, "mdi:home", this._fmt(values.home), "", "Home", COLORS.home)}
-          ${batteryNodes}
-          ${individualNodes}
+        <div class="wrap">
+          ${config.title || config.home
+            ? html`
+                <div class="head">
+                  ${config.title ? html`<div class="title">${config.title}</div>` : ""}
+                  ${config.home
+                    ? html`
+                        <div class="home-chip" style="--home-color:${COLORS.home}; --home-glow:${homeActive ? "0 0 10px " + COLORS.home + "55" : "0 0 transparent"}">
+                          <ha-icon icon="mdi:home"></ha-icon>
+                          <span class="home-value">${this._fmt(values.home)}</span>
+                          <span class="home-label">Home</span>
+                        </div>
+                      `
+                    : ""}
+                </div>
+              `
+            : ""}
+          ${inputTiles.length ? this._group("Inputs", COLORS.solar, solarActive || gridActive, inputTiles.length, false, inputTiles) : ""}
+          ${batteryTiles.length ? this._group("Batteries", chargingDominant ? COLORS.charge : COLORS.discharge, batteriesActive, batteryTiles.length, chargingDominant, batteryTiles) : ""}
+          ${deviceTiles.length ? this._group("Devices", COLORS.individual, devicesActive, Math.min(4, deviceTiles.length), false, deviceTiles) : ""}
         </div>
       </ha-card>
     `;

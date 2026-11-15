@@ -2,7 +2,7 @@ Custom Lovelace cards for Home Assistant.
 
 ## dual-battery-flow-card
 
-Power flow card with solar, grid, home and **two batteries**, inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus). Lines animate in the direction of the actual flow (import/export, charge/discharge).
+Compact **grouped** power flow card: header row with title + **Home chip** (live house load, glows while consuming), then **Inputs** (solar, grid with import/export/idle), **Batteries** (solar, grid, home and **two batteries** + optional car, SoC and charge/discharge power per member) and **Devices** (top-4 consumers ranked by power) as tile groups with dashed bus lines that animate in the direction of the actual flow (import/export, charge/discharge). Tap a tile (or Enter/Space) to open its more-info dialog; groups hide when nothing is configured. Inspired by [power-flow-card-plus](https://github.com/flixlix/power-flow-card-plus).
 
 ```yaml
 type: custom:dual-battery-flow-card
@@ -32,7 +32,9 @@ individual:
 | `home` | no | House load power sensor (W) |
 | `grid.consumption` / `grid.production` | no | Import / export power sensors (W) |
 | `battery` / `battery_2` | no | Battery config: `entity` (SoC %), `charge`/`discharge` (W) or `power` (signed W, positive = charging, adapt with `invert`), `name` |
-| `individual` | no | Extra consumers shown as small nodes |
+| `car` | no | Car battery config: `entity` (SoC %), `power` (signed W), `name`, `icon` |
+| `individual` | no | Extra consumers shown as ranked device tiles: `entity` (W), `name`, `icon`, optional `threshold` |
+| `individual_count` | no | Number of device tiles to show (ranked by power, cap 4) |
 | `title` | no | Card title |
 
 ## climate-button-row
