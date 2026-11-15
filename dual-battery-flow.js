@@ -378,6 +378,13 @@ class DualBatteryFlowCard extends LitElement {
     const config = this.config;
     const gridImport = this._num(config.grid && config.grid.consumption);
     const gridExport = this._num(config.grid && config.grid.production);
+    const car = config.car ? this._battery(config.car, "Car") : null;
+    // The car (BYD Dolphin) has no V2L: negative `car.power` is the vehicle's
+    // own loads, NOT power feeding the house. Charge-only — only charging
+    // renders as a home->car flow; vehicle-side drain shows an idle 0 W node.
+    if (car) {
+      car.discharge = 0;
+    }
     return {
       solar: this._num(config.solar),
       home: this._num(config.home),
@@ -388,7 +395,7 @@ class DualBatteryFlowCard extends LitElement {
         this._battery(config.battery, "House Battery"),
         this._battery(config.battery_2, "Garage Battery"),
       ].filter(Boolean),
-      car: config.car ? this._battery(config.car, "Car") : null,
+      car,
       individuals: (config.individual || []).map((item) => {
         const entity = typeof item === "string" ? item : item.entity;
         return {
@@ -570,7 +577,8 @@ class DualBatteryFlowCard extends LitElement {
     const lineBat0 = this._line(this._straight(bat0 ? BATTERY_POS[0] : null), batActive(bat0), !!bat0 && bat0.charge > bat0.discharge, Math.max(bat0 ? bat0.charge : 0, bat0 ? bat0.discharge : 0), batLine(bat0));
     const lineBat1 = this._line(this._straight(bat1 ? BATTERY_POS[1] : null), batActive(bat1), !!bat1 && bat1.charge > bat1.discharge, Math.max(bat1 ? bat1.charge : 0, bat1 ? bat1.discharge : 0), batLine(bat1));
     // the car bypass runs HOME -> car, so its reverse polarity is flipped vs the battery lines:
-    // charging runs forward along the curve, discharging reverses it.
+    // charging runs forward along the curve. The car never discharges here — it is
+    // charge-only (no V2L), so lineCar only goes active while charging (home -> car).
     const lineCar = this._line(car ? this._carCurve() : { d: "", len: 0 }, batActive(car), !!car && car.discharge > car.charge, Math.max(car ? car.charge : 0, car ? car.discharge : 0), batLine(car));
     const lineInd = IND_POS.map((pos, i) => {
       const item = individuals[i];
