@@ -36,9 +36,6 @@ class DualBatteryFlowCard extends LitElement {
       :host {
         display: block;
       }
-      ha-card {
-        padding-bottom: 10px;
-      }
       .title {
         font-size: 14px;
         font-weight: 600;
@@ -48,8 +45,8 @@ class DualBatteryFlowCard extends LitElement {
       .container {
         position: relative;
         width: 100%;
-        aspect-ratio: 100 / 64;
-        min-height: 240px;
+        aspect-ratio: 100 / 66;
+        min-height: 250px;
         max-height: 400px;
         container-type: inline-size;
       }
@@ -103,15 +100,17 @@ class DualBatteryFlowCard extends LitElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
       }
       .node.idle {
         opacity: 0.6;
       }
       .circle {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 1px;
         width: clamp(56px, 15cqw, 76px);
         height: clamp(56px, 15cqw, 76px);
         border-radius: 50%;
@@ -124,8 +123,8 @@ class DualBatteryFlowCard extends LitElement {
         height: clamp(62px, 17cqw, 84px);
       }
       .node.ind .circle {
-        width: clamp(48px, 12cqw, 66px);
-        height: clamp(48px, 12cqw, 66px);
+        width: clamp(46px, 11cqw, 62px);
+        height: clamp(46px, 11cqw, 62px);
       }
       .node.active .circle {
         box-shadow: 0 0 0 2px var(--ring-color), 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 14px color-mix(in srgb, var(--ring-color) 55%, transparent);
@@ -148,29 +147,35 @@ class DualBatteryFlowCard extends LitElement {
         --mdc-icon-size: clamp(13px, 3cqw, 18px);
       }
       .value {
-        font-size: clamp(12px, 3.1cqw, 16px);
+        font-size: clamp(11px, 2.9cqw, 15px);
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: var(--primary-text-color);
-        background: var(--ha-card-background, var(--card-background-color, #fff));
-        padding: 0 4px;
-        border-radius: 4px;
+      }
+      .node.hero .value {
+        font-size: clamp(12px, 3.2cqw, 17px);
       }
       .node.ind .value {
-        font-size: clamp(10px, 2.6cqw, 13px);
+        font-size: clamp(9px, 2.4cqw, 12px);
       }
       .state {
-        font-size: 10px;
+        font-size: 9px;
         color: var(--secondary-text-color);
       }
       .label {
         font-size: clamp(10px, 2.4cqw, 12px);
         max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         text-align: center;
         color: var(--secondary-text-color);
         background: var(--ha-card-background, var(--card-background-color, #fff));
         padding: 0 4px;
         border-radius: 4px;
+      }
+      .node.ind .label {
+        max-width: 90px;
       }
       @container (max-width: 400px) {
         .circle {
@@ -182,8 +187,8 @@ class DualBatteryFlowCard extends LitElement {
           height: 50px;
         }
         .node.ind .circle {
-          width: 40px;
-          height: 40px;
+          width: 38px;
+          height: 38px;
         }
         .circle ha-icon {
           --mdc-icon-size: 13px;
@@ -196,6 +201,9 @@ class DualBatteryFlowCard extends LitElement {
         }
         .node.ind .value {
           font-size: 9px;
+        }
+        .state {
+          font-size: 8px;
         }
         .label {
           font-size: 9px;
@@ -211,8 +219,8 @@ class DualBatteryFlowCard extends LitElement {
           height: 50px;
         }
         .node.ind .circle {
-          width: 40px;
-          height: 40px;
+          width: 38px;
+          height: 38px;
         }
         .circle ha-icon {
           --mdc-icon-size: 13px;
@@ -225,6 +233,9 @@ class DualBatteryFlowCard extends LitElement {
         }
         .node.ind .value {
           font-size: 9px;
+        }
+        .state {
+          font-size: 8px;
         }
         .label {
           font-size: 9px;
@@ -376,13 +387,15 @@ class DualBatteryFlowCard extends LitElement {
     };
   }
 
-  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText, extraStyle) {
+  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText) {
     const klass = "node" + (cls ? " " + cls : "") + (active ? " active" : " idle");
-    const style = "left:" + pos[0] + "%;top:" + pos[1] + "%;--ring-color:" + color + (extraStyle ? ";" + extraStyle : "") + ";";
+    const style = "left:" + pos[0] + "%;top:" + pos[1] + "%;--ring-color:" + color + ";";
     const inner = html`
-      <div class="circle"><ha-icon icon="${icon}"></ha-icon></div>
-      <div class="value">${valueText}</div>
-      ${stateText ? html`<div class="state">${stateText}</div>` : ""}
+      <div class="circle">
+        <ha-icon icon="${icon}"></ha-icon>
+        <div class="value">${valueText}</div>
+        ${stateText ? html`<div class="state">${stateText}</div>` : ""}
+      </div>
       <div class="label">${labelText}</div>
     `;
     if (entity) {
@@ -415,7 +428,7 @@ class DualBatteryFlowCard extends LitElement {
     const homeActive = values.home > threshold;
 
     const members = values.car ? [...values.batteries, values.car] : values.batteries;
-    const batteryPos = [[34, 82], [52, 82], [70, 82]];
+    const batteryPos = [[34, 78], [52, 78], [70, 78]];
     const bat0 = members[0] || null;
     const bat1 = members[1] || null;
     const car = members[2] || null;
@@ -427,7 +440,7 @@ class DualBatteryFlowCard extends LitElement {
       individuals = [...individuals].sort((a, b) => b.value - a.value).slice(0, individualCount);
     }
     individuals = individuals.slice(0, 4);
-    const indPos = [[87, 18], [87, 40], [87, 62], [87, 84]];
+    const indPos = [[87, 16], [87, 38], [87, 60], [87, 82]];
 
     const lineSolar = this._line(config.solar ? [14, 20] : null, solarActive, false, values.solar, solarActive ? COLORS.solar : COLORS.idle);
     const lineGrid = this._line(config.grid ? [14, 60] : null, gridActive, !gridImport, values.gridNet, gridColor);
@@ -458,7 +471,7 @@ class DualBatteryFlowCard extends LitElement {
       nodes.push(this._node(battery.config.entity, batteryPos[i], "", color, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name));
     });
     individuals.forEach((item, i) => {
-      nodes.push(this._node(item.entity, indPos[i], "ind", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, "z-index:" + (5 - i)));
+      nodes.push(this._node(item.entity, indPos[i], "ind", item.value > threshold ? COLORS.individual : COLORS.idle, item.value > threshold, item.icon, this._fmt(item.value), "", item.name));
     });
 
     return html`
