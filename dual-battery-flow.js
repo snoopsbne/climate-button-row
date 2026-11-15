@@ -34,7 +34,7 @@ const SOLAR_POS = [15, 25];
 const GRID_POS = [15, 75];
 // Slots: house / garage / car. Without a car the car slot is simply unused
 // (2-member fallback: house + garage; 1-member: house only).
-const BATTERY_POS = [[50, 13], [50, 65], [50, 85]];
+const BATTERY_POS = [[50, 13], [50, 65], [50, 88]];
 const IND_POS = [[85, 16], [85, 40], [85, 64], [85, 87]];
 // Car flow bows into the gap between the left and middle columns so it doesn't
 // daisy-chain straight down through the garage bubble. Starts at HOME, ends at
