@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) in a 2x2 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow; the house and garage bubbles draw a 4-bar SoC battery glyph whose frontier bar fills in a loop while charging.",
+  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-6) in a 2x3 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow; the house and garage bubbles draw a 4-bar SoC battery glyph whose frontier bar fills in a loop while charging.",
   preview: false,
 });
 
@@ -28,30 +28,36 @@ const COLORS = {
 const HOME = [50, 40];
 // Layout (percent coords, centre-anchored nodes): three columns —
 // inputs left (x=15), batteries middle (x=50, Home hub between house and garage),
-// devices right in a 2x2 grid (biggest consumers on the TOP row: rank1 upper-left,
-// rank2 upper-right, rank3 lower-left, rank4 lower-right). The house battery bubble
+// devices right in a 2x3 grid (biggest consumers on the TOP row: rank1 upper-left,
+// rank2 upper-right, rank3 middle-left, rank4 middle-right, rank5 lower-left,
+// rank6 lower-right — filled row-major). The house battery bubble
 // is larger than the garage/car, so the middle column is spaced wider than before.
 const SOLAR_POS = [15, 25];
 const GRID_POS = [15, 75];
 // Slots: house / garage / car. Without a car the car slot is simply unused
 // (2-member fallback: house + garage; 1-member: house only).
 const BATTERY_POS = [[50, 14], [50, 64], [50, 88]];
-const IND_POS = [[76, 30], [91, 30], [76, 72], [91, 72]];
+// Rows sit at 22/50/78% — 28% pitch, so even max-size (84px) bubbles keep a
+// clear gap between rows on the 100/76 canvas.
+const IND_POS = [[76, 22], [91, 22], [76, 50], [91, 50], [76, 78], [91, 78]];
 // Car flow bows into the gap between the left and middle columns so it doesn't
 // daisy-chain straight down through the garage bubble. Starts at HOME, ends at
 // the car; control points at x=36%, y=50%/75% (built in pixels in render()).
 const CAR_CTRL = [[36, 50], [36, 75]];
-// The right device column is two columns wide, so rank2/rank4 (the right-hand
-// cells) get gentle arcs that bow over/under the rank1/rank3 bubbles instead of
-// daisy-chaining straight through them. Home->rank1 (IND[0]) and Home->rank3
-// (IND[2]) stay straight. Like every other line, the path runs DEVICE -> HOME
-// (render() reverses the control points), so one reverse flag drives travel
-// home->device for the dashes AND chevrons. Control points are percent coords
-// written in home->device order here and built in pixels in render(), so the
-// chevrons reuse the exact same d.
+// The right device grid is two columns wide, so the outer column (rank2/rank4/
+// rank6, the right-hand cells) gets arcs instead of daisy-chaining straight
+// through the inner bubbles: rank2 bows OVER the top row, rank4 threads the
+// needle gap between the top and middle INNER bubbles (its straight line would
+// cut through rank3), and rank6 bows UNDER the bottom row. The inner column
+// (rank1/rank3/rank5) stays straight. Like every other line, the path runs
+// DEVICE -> HOME (render() reverses the control points), so one reverse flag
+// drives travel home->device for the dashes AND chevrons. Control points are
+// percent coords written in home->device order here and built in pixels in
+// render(), so the chevrons reuse the exact same d.
 const IND_CURVE_CTRL = {
-  1: [[64, 14], [80, 14]], // HOME -> rank2 (top-right cell); render() uses these reversed (rank2 -> HOME)
-  3: [[64, 86], [80, 86]], // HOME -> rank4 (bottom-right cell); render() uses these reversed (rank4 -> HOME)
+  1: [[64, 6], [80, 6]], // HOME -> rank2 (top-right cell): bows over the y=22% top-row bubbles; render() uses these reversed (rank2 -> HOME)
+  3: [[66, 36], [80, 36]], // HOME -> rank4 (middle-right cell): needles between the inner top (y=22) and middle (y=50) bubbles; render() uses these reversed (rank4 -> HOME)
+  5: [[64, 94], [80, 94]], // HOME -> rank6 (bottom-right cell): bows under the y=78% bottom-row bubbles; render() uses these reversed (rank6 -> HOME)
 };
 
 class DualBatteryFlowCard extends LitElement {
@@ -566,7 +572,7 @@ class DualBatteryFlowCard extends LitElement {
     };
   }
 
-  // Two static chevrons per line (18 total), always in the template when the
+  // Two static chevrons per line (22 total), always in the template when the
   // browser supports motion paths; display:none while the line has no `d`.
   // The second chevron is phase-shifted half a duration so flows read as a
   // steady stream. `.on` exactly when the line is active; `.reverse` exactly
@@ -653,7 +659,7 @@ class DualBatteryFlowCard extends LitElement {
     if (individualCount != null && Number.isFinite(individualCount) && individualCount > 0) {
       individuals = [...individuals].sort((a, b) => b.value - a.value).slice(0, individualCount);
     }
-    individuals = individuals.slice(0, 4);
+    individuals = individuals.slice(0, 6);
 
     // usage-scaled bubbles: the biggest producer/consumer gets the largest bubble;
     // diameters scale with the sqrt of the power ratio (area proportional to watts),
@@ -713,7 +719,7 @@ class DualBatteryFlowCard extends LitElement {
     // Chevrons only where CSS motion paths exist (jsdom has no CSS.supports,
     // so the harness's Part A exercises the graceful no-arrow fallback).
     const motionOK = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("offset-path", 'path("M0,0 L1,1")');
-    const arrowKeys = [["solar", lineSolar], ["grid", lineGrid], ["bat0", lineBat0], ["bat1", lineBat1], ["car", lineCar], ["ind0", lineInd[0]], ["ind1", lineInd[1]], ["ind2", lineInd[2]], ["ind3", lineInd[3]]];
+    const arrowKeys = [["solar", lineSolar], ["grid", lineGrid], ["bat0", lineBat0], ["bat1", lineBat1], ["car", lineCar], ["ind0", lineInd[0]], ["ind1", lineInd[1]], ["ind2", lineInd[2]], ["ind3", lineInd[3]], ["ind4", lineInd[4]], ["ind5", lineInd[5]]];
 
     return html`
       <ha-card>
@@ -740,6 +746,10 @@ class DualBatteryFlowCard extends LitElement {
             <path class="${lineInd[2].cls}" data-line="ind2" d="${lineInd[2].d}" style="${lineInd[2].style}" pathLength="100" vector-effect="non-scaling-stroke" />
             <path class="track" d="${lineInd[3].d}" pathLength="100" vector-effect="non-scaling-stroke" />
             <path class="${lineInd[3].cls}" data-line="ind3" d="${lineInd[3].d}" style="${lineInd[3].style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineInd[4].d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineInd[4].cls}" data-line="ind4" d="${lineInd[4].d}" style="${lineInd[4].style}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="track" d="${lineInd[5].d}" pathLength="100" vector-effect="non-scaling-stroke" />
+            <path class="${lineInd[5].cls}" data-line="ind5" d="${lineInd[5].d}" style="${lineInd[5].style}" pathLength="100" vector-effect="non-scaling-stroke" />
           </svg>
           ${motionOK ? arrowKeys.map(([key, line]) => this._arrows(line, key)) : ""}
           <span class="group-tag" style="left:2%;top:2%">Inputs</span>
