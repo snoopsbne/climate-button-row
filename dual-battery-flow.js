@@ -151,6 +151,7 @@ class DualBatteryFlowCard extends LitElement {
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: var(--primary-text-color);
+        white-space: nowrap;
       }
       .node.hero .value {
         font-size: clamp(12px, 3.2cqw, 17px);
@@ -202,6 +203,9 @@ class DualBatteryFlowCard extends LitElement {
         .node.ind .value {
           font-size: 9px;
         }
+        .node.hero .value {
+          font-size: 11px;
+        }
         .state {
           font-size: 8px;
         }
@@ -233,6 +237,9 @@ class DualBatteryFlowCard extends LitElement {
         }
         .node.ind .value {
           font-size: 9px;
+        }
+        .node.hero .value {
+          font-size: 11px;
         }
         .state {
           font-size: 8px;
