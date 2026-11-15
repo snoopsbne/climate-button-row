@@ -2,7 +2,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "dual-battery-flow-card",
   name: "dual battery flow card",
-  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) in a 2x2 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow.",
+  description: "Compact grouped flow diagram in three columns: Inputs (solar + grid) on the left, Batteries (house + garage + optional car) in the middle around the Home hub, Devices (top-4) in a 2x2 grid on the right (biggest consumers on the top row); every bubble is sized by its share of the biggest power flow (the house battery gets a larger floor), with magnitude-weighted animated lines and direction chevrons riding each active flow; the house and garage bubbles draw a 4-bar SoC battery glyph whose frontier bar fills in a loop while charging.",
   preview: false,
 });
 
@@ -252,6 +252,85 @@ class DualBatteryFlowCard extends LitElement {
         --mdc-icon-size: clamp(11px, calc(var(--d) * 0.22), 20px);
         color: var(--ring-color);
       }
+      /* SoC battery glyph (house + garage nodes replace the mdi battery icon):
+         an outlined body with four quartile bars + a terminal nub, built from
+         divs so the frontier bar can animate. Bar colour follows the node ring
+         colour. Static: bars below round(soc/25) are .lit, the rest .dim.
+         Charging: bars below floor(soc/25) .lit, the frontier bar .fill (it
+         grows from the bottom, loops), the rest .dim; at 100% (or unknown SoC
+         while charging) all bars .lit + .pulse trickle shimmer. */
+      .batt {
+        display: flex;
+        align-items: center;
+        height: clamp(10px, calc(var(--d) * 0.26), 20px);
+        color: var(--ring-color);
+      }
+      .batt-body {
+        display: flex;
+        align-items: stretch;
+        gap: 1px;
+        height: 100%;
+        border: 1.5px solid currentColor;
+        border-radius: 3px;
+        padding: 1.5px;
+        box-sizing: border-box;
+      }
+      .batt-bar {
+        width: clamp(2px, calc(var(--d) * 0.055), 3.5px);
+        height: 100%;
+        border-radius: 1px;
+        background: currentColor;
+        opacity: 0.18;
+        transform-origin: bottom center;
+      }
+      .batt-bar.lit {
+        opacity: 1;
+      }
+      .batt-bar.dim {
+        opacity: 0.18;
+      }
+      .batt-bar.fill {
+        opacity: 0.4;
+        animation: fillbar 1.6s ease-in-out infinite;
+      }
+      @keyframes fillbar {
+        0% {
+          transform: scaleY(0.15);
+          opacity: 0.4;
+        }
+        65% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+        85% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+        100% {
+          transform: scaleY(0.15);
+          opacity: 0.4;
+        }
+      }
+      .batt-bar.pulse {
+        opacity: 1;
+        animation: batt-pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes batt-pulse {
+        0%,
+        100% {
+          opacity: 0.55;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .batt-tip {
+        width: 2px;
+        height: 40%;
+        margin-left: 1px;
+        border-radius: 0 2px 2px 0;
+        background: currentColor;
+      }
       .value {
         font-size: clamp(9px, calc(var(--d) * 0.17), 15px);
         font-weight: 700;
@@ -350,28 +429,36 @@ class DualBatteryFlowCard extends LitElement {
     };
   }
 
-  _batteryIcon(battery) {
+  // Battery-glyph quartile model (consumed by _node's ${battery} branch):
+  // lit/dim/fill/pulse per bar, SoC-truthful.
+  // - not charging (idle or discharging): bars below round(soc/25) .lit, rest
+  //   .dim; soc unknown -> all dim; soc >= 100 -> all lit (static).
+  // - charging (charge > 10 && charge >= discharge), soc < 100: bars below
+  //   floor(soc/25) .lit, the frontier bar .fill (loops filling from bottom),
+  //   the rest .dim.
+  // - charging at 100% (or SoC unknown while charging): all bars .lit + .pulse.
+  _batteryBars(battery) {
     if (!battery) {
-      return "mdi:battery";
+      return null;
     }
-    const soc = battery.soc == null ? null : Math.floor(Math.min(100, Math.max(0, battery.soc)) / 10) * 10;
     const charging = battery.charge > 10 && battery.charge >= battery.discharge;
+    const soc = battery.soc == null ? null : Math.min(100, Math.max(0, battery.soc));
+    let cls = ["dim", "dim", "dim", "dim"];
     if (charging) {
       if (soc == null || soc >= 100) {
-        return "mdi:battery-charging";
+        cls = ["lit pulse", "lit pulse", "lit pulse", "lit pulse"];
+      } else {
+        const filled = Math.floor(soc / 25);
+        cls = [0, 1, 2, 3].map((i) => (i < filled ? "lit" : i === filled ? "fill" : "dim"));
       }
-      if (soc <= 0) {
-        return "mdi:battery-charging-outline";
-      }
-      return "mdi:battery-charging-" + soc;
+    } else if (soc != null) {
+      const lit = Math.round(soc / 25);
+      cls = [0, 1, 2, 3].map((i) => (i < lit ? "lit" : "dim"));
     }
-    if (soc == null || soc >= 100) {
-      return "mdi:battery";
-    }
-    if (soc <= 0) {
-      return "mdi:battery-outline";
-    }
-    return "mdi:battery-" + soc;
+    return {
+      bars: cls.map((c) => "batt-bar " + c),
+      tip: "batt-tip",
+    };
   }
 
   _values() {
@@ -499,12 +586,24 @@ class DualBatteryFlowCard extends LitElement {
     `;
   }
 
-  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText, d) {
+  _node(entity, pos, cls, color, active, icon, valueText, stateText, labelText, d, battery) {
     const klass = "node" + (cls ? " " + cls : "") + (active ? " active" : " idle");
     const style = "left:" + pos[0] + "%;top:" + pos[1] + "%;--ring-color:" + color + ";--d:" + d + ";";
     const inner = html`
       <div class="circle">
-        <ha-icon icon="${icon}"></ha-icon>
+        ${battery
+          ? html`
+              <div class="batt">
+                <div class="batt-body">
+                  <div class="${battery.bars[0]}"></div>
+                  <div class="${battery.bars[1]}"></div>
+                  <div class="${battery.bars[2]}"></div>
+                  <div class="${battery.bars[3]}"></div>
+                </div>
+                <div class="${battery.tip}"></div>
+              </div>
+            `
+          : html`<ha-icon icon="${icon}"></ha-icon>`}
         <div class="value">${valueText}</div>
         ${stateText ? html`<div class="state">${stateText}</div>` : ""}
       </div>
@@ -602,9 +701,10 @@ class DualBatteryFlowCard extends LitElement {
     nodes.push(this._node(config.home, HOME, "hero", COLORS.home, homeActive, "mdi:home", this._fmt(values.home), "", "Home", dia(values.home)));
     members.forEach((battery, i) => {
       const isCar = battery === values.car;
-      const icon = isCar ? battery.config.icon || "mdi:car-electric" : this._batteryIcon(battery);
       const name = battery.config.name || (battery.config.entity ? this._state(battery.config.entity)?.attributes?.friendly_name : "") || battery.alt;
-      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", COLORS.battery, batActive(battery), icon, this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, i === 0 ? diaHouse(batWatts(battery)) : diaBat(batWatts(battery))));
+      // house/garage render the SoC battery glyph; the car keeps its mdi icon
+      // (its charging is already shown by the home->car flow).
+      nodes.push(this._node(battery.config.entity, BATTERY_POS[i], "", COLORS.battery, batActive(battery), isCar ? battery.config.icon || "mdi:car-electric" : "", this._fmt(Math.max(battery.charge, battery.discharge)), battery.soc == null ? "" : Math.round(battery.soc) + "%", name, i === 0 ? diaHouse(batWatts(battery)) : diaBat(batWatts(battery)), isCar ? null : this._batteryBars(battery)));
     });
     individuals.forEach((item, i) => {
       nodes.push(this._node(item.entity, IND_POS[i], "ind", COLORS.individual, item.value > threshold, item.icon, this._fmt(item.value), "", item.name, dia(item.value)));
